@@ -7,6 +7,13 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 
+import static com.mongodb.client.model.Filters.eq;
+import org.bson.Document;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+
 public class HelloApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
@@ -18,6 +25,15 @@ public class HelloApplication extends Application {
     }
 
     public static void main(String[] args) {
-        launch();
-    }
+        String uri = "mongodb+srv://nusyncc:UHKgwaPhtQZuCcaV@cluster0.toqveo3.mongodb.net/?retryWrites=true&w=majority";
+        try (MongoClient mongoClient = MongoClients.create(uri)) {
+            MongoDatabase database = mongoClient.getDatabase("NUSync");
+            MongoCollection<Document> collection = database.getCollection("sample_airbnb");
+            Document doc = collection.find(eq("_id","10006546"));
+            System.out.println(doc.toJson());
+        }
+
+    launch();
+}
+
 }

@@ -8,6 +8,9 @@ module com.example.nusync {
     requires net.synedra.validatorfx;
     requires org.kordamp.ikonli.javafx;
     requires org.kordamp.bootstrapfx.core;
+    requires org.mongodb.driver.core;
+    requires org.mongodb.driver.sync.client;
+    requires org.mongodb.bson;
     //requires eu.hansolo.tilesfx;
 
     opens com.example.nusync to javafx.fxml;
