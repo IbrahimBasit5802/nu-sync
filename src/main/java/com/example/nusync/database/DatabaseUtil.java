@@ -2,6 +2,7 @@ package com.example.nusync.database;
 
 import com.example.nusync.data.Lecture;
 
+import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +10,8 @@ import java.util.List;
 public class DatabaseUtil {
 
     private static final String URL = "jdbc:sqlite:lectures.db";
+    private static final String DATABASE_PATH = "lectures.db";
+
 
     private static Connection connect() {
         Connection conn = null;
@@ -18,6 +21,11 @@ public class DatabaseUtil {
             System.out.println(e.getMessage());
         }
         return conn;
+    }
+
+    public boolean doesDatabaseExist() {
+        File databaseFile = new File(DATABASE_PATH);
+        return databaseFile.exists();
     }
 
     public void initialize() {

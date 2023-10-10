@@ -38,33 +38,29 @@ public class HelloApplication extends Application {
 
 
     public static void main(String[] args) {
-        SheetsAPIFetcher fetcher = new SheetsAPIFetcher(YOUR_API_KEY, YOUR_SPREADSHEET_ID);
-        String[] weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
+        DatabaseUtil dbUtil = new DatabaseUtil();
 
-        for (String day : weekdays) {
-            System.out.println("Fetching data for: " + day);
-            try {
-                Sheet sheetData = fetcher.fetchDataAndFormat(day);
-                List<GridData> gridDataList = sheetData.getData();
-                List<List<Object>> values = fetcher.fetchSheetData(day);
+        if (!dbUtil.doesDatabaseExist()) {
+            // If the database doesn't exist, fetch data and create the database.
+            SheetsAPIFetcher fetcher = new SheetsAPIFetcher(YOUR_API_KEY, YOUR_SPREADSHEET_ID);
+            String[] weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
 
-                List<Lecture> lectures = processData(values, gridDataList, day);
+            for (String day : weekdays) {
+                System.out.println("Fetching data for: " + day);
+                try {
+                    Sheet sheetData = fetcher.fetchDataAndFormat(day);
+                    List<GridData> gridDataList = sheetData.getData();
+                    List<List<Object>> values = fetcher.fetchSheetData(day);
 
-                DatabaseUtil dbUtil = new DatabaseUtil();
+                    List<Lecture> lectures = processData(values, gridDataList, day);
+                    dbUtil.initialize();
+                    dbUtil.saveLectures(lectures);
 
-// To save lectures:
-                dbUtil.initialize();
-
-                dbUtil.saveLectures(lectures);
-
-
-                // Save lectures to database or whatever you want to do
-                // For example: saveLecturesToDB(lectures);
-
-            } catch (Exception e) {
-                e.printStackTrace();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                System.out.println("-----------------------");
             }
-            System.out.println("-----------------------");
         }
 
         launch(args);
