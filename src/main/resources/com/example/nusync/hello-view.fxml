@@ -1,16 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.layout.VBox?>
-
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.control.Button?>
+
 <VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.example.nusync.HelloController">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
     </padding>
 
-    <Label fx:id="welcomeText"/>
-    <Button text="Hello!" onAction="#onHelloButtonClick"/>
+    <HBox spacing="10">
+        <Label text="Section:" />
+        <ComboBox fx:id="sectionSelector"/>
+
+        <Label text="Day:" />
+        <ComboBox fx:id="daySelector"/>
+
+        <Label text="Batch:" />
+        <ComboBox fx:id="batchSelector"/>
+
+        <Label text="Department:" />
+        <ComboBox fx:id="departmentSelector"/>
+    </HBox>
+
+    <Button text="View Timetable" onAction="#onViewTimetableClick"/>
+
+    <ListView fx:id="lecturesListView"/>
 </VBox>
