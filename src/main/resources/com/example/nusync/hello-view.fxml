@@ -8,6 +8,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.control.Button?>
 
+<?import javafx.scene.control.ProgressIndicator?>
 <VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.example.nusync.HelloController">
     <padding>
@@ -31,4 +32,11 @@
     <Button text="View Timetable" onAction="#onViewTimetableClick"/>
 
     <ListView fx:id="lecturesListView"/>
+
+    <!-- Add the loading spinner and message here -->
+    <HBox alignment="CENTER" spacing="10">
+        <ProgressIndicator fx:id="loadingSpinner" visible="false" />
+        <Label fx:id="loadingMessage" text="" />
+    </HBox>
 </VBox>
+
