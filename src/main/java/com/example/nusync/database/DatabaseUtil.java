@@ -28,7 +28,7 @@ public class DatabaseUtil {
         return databaseFile.exists();
     }
 
-    public void initialize() {
+    public static void initialize() {
         String createTableSQL = "CREATE TABLE IF NOT EXISTS lectures ("
                 + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + "courseName TEXT NOT NULL,"
@@ -75,7 +75,7 @@ public class DatabaseUtil {
     public List<Lecture> queryLectures(String section, String day, String batch, String department) {
         List<Lecture> lectures = new ArrayList<>();
         String query = "SELECT * FROM lectures WHERE "
-                + "section = ? AND "
+                + "section LIKE ? AND "
                 + "day = ? AND "
                 + "batch = ? AND "
                 + "department = ?";
@@ -83,7 +83,7 @@ public class DatabaseUtil {
         try (Connection connection = DriverManager.getConnection(URL);
              PreparedStatement statement = connection.prepareStatement(query)) {
 
-            statement.setString(1, section);
+            statement.setString(1, "%" + section + "%");
             statement.setString(2, day);
             statement.setString(3, batch);
             statement.setString(4, department);
@@ -100,6 +100,9 @@ public class DatabaseUtil {
                 lecture.setCourseName(courseName);
                 lecture.setTimeslot(timeslot);
                 lecture.setRoom(room);
+                lecture.setBatch(batch);
+                lecture.setDay(day);
+                lecture.setSection(section);
                 //... Set other fields as needed
 
                 lectures.add(lecture);

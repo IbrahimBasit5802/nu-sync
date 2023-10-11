@@ -1,69 +1,49 @@
 package com.example.nusync;
 
+import com.example.nusync.config.Config;
 import com.example.nusync.data.Lecture;
 import com.example.nusync.database.DatabaseUtil;
-import com.google.api.services.sheets.v4.model.*;
-import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
-import org.bson.Document;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
+import com.google.api.services.sheets.v4.model.GridData;
+import com.google.api.services.sheets.v4.model.RowData;
+import com.google.api.services.sheets.v4.model.Sheet;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+public class DatabaseHandler {
 
 
-import static com.mongodb.client.model.Filters.eq;
+    public CompletableFuture<Void> initializeDatabaseAsync() {
+        return CompletableFuture.runAsync(() -> {
+            // Place the current initializeDatabase() code here
+            DatabaseUtil dbUtil = new DatabaseUtil();
 
-public class HelloApplication extends Application {
+            if (!dbUtil.doesDatabaseExist()) {
+                // If the database doesn't exist, fetch data and create the database.
+                SheetsAPIFetcher fetcher = new SheetsAPIFetcher(Config.API_KEY, Config.COMPUTING_TIMETABLE_SPREADSHEET_ID);
+                String[] weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
 
-    private static final String YOUR_API_KEY = "AIzaSyAIUw5fOxesfapuLhn8r11lI6_TXKXuwvY";
-    private static final String YOUR_SPREADSHEET_ID = "1knS7NRf3WjqFOnd-b5NTx1rvWNqvNK5jjecY0fkhcXM";
+                for (String day : weekdays) {
+                    System.out.println("Fetching data for: " + day);
+                    try {
+                        Sheet sheetData = fetcher.fetchDataAndFormat(day);
+                        List<GridData> gridDataList = sheetData.getData();
+                        List<List<Object>> values = fetcher.fetchSheetData(day);
 
-    @Override
-    public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 320, 240);
-        stage.setTitle("ViewTimetable");
-        stage.setScene(scene);
-        stage.show();
-    }
+                        List<Lecture> lectures = processData(values, gridDataList, day);
+                        DatabaseUtil.initialize();
+                        dbUtil.saveLectures(lectures);
 
-
-    public static void main(String[] args) {
-        DatabaseUtil dbUtil = new DatabaseUtil();
-
-        if (!dbUtil.doesDatabaseExist()) {
-            // If the database doesn't exist, fetch data and create the database.
-            SheetsAPIFetcher fetcher = new SheetsAPIFetcher(YOUR_API_KEY, YOUR_SPREADSHEET_ID);
-            String[] weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
-
-            for (String day : weekdays) {
-                System.out.println("Fetching data for: " + day);
-                try {
-                    Sheet sheetData = fetcher.fetchDataAndFormat(day);
-                    List<GridData> gridDataList = sheetData.getData();
-                    List<List<Object>> values = fetcher.fetchSheetData(day);
-
-                    List<Lecture> lectures = processData(values, gridDataList, day);
-                    dbUtil.initialize();
-                    dbUtil.saveLectures(lectures);
-
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    System.out.println("-----------------------");
                 }
-                System.out.println("-----------------------");
             }
-        }
-
-        launch(args);
+        });
     }
 
     public static List<Lecture> processData(List<List<Object>> values, List<GridData> gridDataList, String day) {
@@ -79,7 +59,7 @@ public class HelloApplication extends Application {
                 String bg = null;
                 String cell = row_vals.get(j).toString().trim();
                 if (!cell.isEmpty()) {
-                    String batch = "";
+                    String batch = null;
                     if (cell.contains("(")) {
                         String[] parts = cell.split("[()]");
                         if (parts.length > 1) {
@@ -118,18 +98,18 @@ public class HelloApplication extends Application {
 
         // Processing lectures
         for (int i = 5; i < values.size(); i++) {
-            List<Object> row_vals = values.get(i);
+            List<Object> row_values = values.get(i);
             RowData rowData = gridDataList.get(0).getRowData().get(i);
 
-            String room = row_vals.get(0).toString();
+            String room = row_values.get(0).toString();
 
             if ("Lab".equals(room)) {
                 timeslot_row_index = i;
                 continue;
             }
 
-            for (int j = 0; j < row_vals.size(); j++) {
-                String cellValue = row_vals.get(j).toString().trim();
+            for (int j = 0; j < row_values.size(); j++) {
+                String cellValue = row_values.get(j).toString().trim();
 
                 if (!cellValue.isEmpty()) {
                     String timeslot;
@@ -155,27 +135,7 @@ public class HelloApplication extends Application {
                                 section = courseParts[1].trim();
                             }
 
-                            String cellBackgroundColor = "#FFFFFF"; // Default color
-                            com.google.api.services.sheets.v4.model.Color bgColor = rowData.getValues().get(j).getEffectiveFormat().getBackgroundColor();
-                            if (bgColor != null) {
-                                float redFloat = (float) 0;
-                                float greenFloat = (float) 0;
-                                float blueFloat = (float) 0;
-                                if (bgColor.getRed() != null) {
-                                    redFloat = bgColor.getRed();
-                                }
-                                if (bgColor.getGreen() != null) {
-                                    greenFloat = bgColor.getGreen();
-                                }
-                                if (bgColor.getBlue() != null) {
-                                    blueFloat = bgColor.getBlue();
-                                }
-                                int red = (int) (redFloat * 255);
-                                int green = (int) (greenFloat * 255);
-                                int blue = (int) (blueFloat * 255);
-
-                                cellBackgroundColor = String.format("#%02x%02x%02x", red, green, blue);
-                            }
+                            String cellBackgroundColor = getCellBackgroundColor(rowData, j);
                             String batch = colors.get(cellBackgroundColor);
 
                             if (batch != null) {
@@ -199,26 +159,29 @@ public class HelloApplication extends Application {
         return lectures;
     }
 
-
-
-    public static void connectToMongoDB() {
-        String uri = "mongodb+srv://nusyncc:UHKgwaPhtQZuCcaV@cluster0.toqveo3.mongodb.net/?retryWrites=true&w=majority";
-
-        try (MongoClient mongoClient = MongoClients.create(uri)) {
-            MongoDatabase database = mongoClient.getDatabase("sample_airbnb");
-            MongoCollection<Document> collection = database.getCollection("listingAndReviews");
-
-            Document doc = collection.find(eq("_id","10009999")).first();
-            if (doc != null) {
-                System.out.println(doc.toJson());
-            } else {
-                System.out.println("Document not found");
+    private static String getCellBackgroundColor(RowData rowData, int j) {
+        String cellBackgroundColor = "#FFFFFF"; // Default color
+        com.google.api.services.sheets.v4.model.Color bgColor = rowData.getValues().get(j).getEffectiveFormat().getBackgroundColor();
+        if (bgColor != null) {
+            float redFloat = (float) 0;
+            float greenFloat = (float) 0;
+            float blueFloat = (float) 0;
+            if (bgColor.getRed() != null) {
+                redFloat = bgColor.getRed();
             }
+            if (bgColor.getGreen() != null) {
+                greenFloat = bgColor.getGreen();
+            }
+            if (bgColor.getBlue() != null) {
+                blueFloat = bgColor.getBlue();
+            }
+            int red = (int) (redFloat * 255);
+            int green = (int) (greenFloat * 255);
+            int blue = (int) (blueFloat * 255);
 
-        } catch (Exception e) {
-            System.err.println("Error interacting with MongoDB: " + e.getMessage());
-            e.printStackTrace();
+            cellBackgroundColor = String.format("#%02x%02x%02x", red, green, blue);
         }
-
+        return cellBackgroundColor;
     }
 }
+
