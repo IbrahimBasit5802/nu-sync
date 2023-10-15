@@ -1,5 +1,6 @@
 package com.example.nusync.controllers;
 
+import com.example.nusync.data.FreeRoom;
 import com.example.nusync.data.Lecture;
 import com.example.nusync.database.DatabaseUtil;
 import javafx.application.Platform;
@@ -28,26 +29,26 @@ public class FreeRoomsController {
 
     public void loadData() {
         // Place the database loading code here
-        CompletableFuture<List<Lecture>> future = CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<List<FreeRoom>> future = CompletableFuture.supplyAsync(() -> {
             try {
-                List<Lecture> lectures = databaseUtil.loadLectures();
-                System.out.println("Fetched " + lectures.size() + " lectures."); // Debugging
-                return lectures;
+                List<FreeRoom> rooms = databaseUtil.loadFreeRooms();
+                System.out.println("Fetched " + rooms.size() + " free rooms."); // Debugging
+                return rooms;
             } catch (Exception e) {
                 e.printStackTrace(); // Log any exceptions
                 return null;
             }
         });
 
-        future.thenAcceptAsync(lectures -> {
-            if (lectures == null) {
-                System.out.println("Lectures list is null."); // Debugging
+        future.thenAcceptAsync(rooms -> {
+            if (rooms == null) {
+                System.out.println("Free Room list is null."); // Debugging
                 return;
             }
             Platform.runLater(() -> {
                 freeRoomsListView.getItems().clear();
-                for (Lecture lecture : lectures) {
-                    freeRoomsListView.getItems().add(lecture.getCourseName() + " - " + lecture.getTimeslot() + " - " + lecture.getRoom());
+                for (FreeRoom room : rooms) {
+                    freeRoomsListView.getItems().add(room.getRoomName() + " - " + room.getStartTime() + " - " + room.getEndTime() + " - " + room.getDay());
                 }
                 progressIndicator.setVisible(false);
             });

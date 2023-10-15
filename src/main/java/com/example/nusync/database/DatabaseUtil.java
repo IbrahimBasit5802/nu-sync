@@ -1,5 +1,6 @@
 package com.example.nusync.database;
 
+import com.example.nusync.data.FreeRoom;
 import com.example.nusync.data.Lecture;
 
 import java.io.File;
@@ -28,6 +29,19 @@ public class DatabaseUtil {
         return databaseFile.exists();
     }
 
+    public boolean doesFreeRoomsTableExist() {
+        String checkTableExistenceSQL = "SELECT name FROM sqlite_master WHERE type='table' AND name='freeRooms';";
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(checkTableExistenceSQL)) {
+            return rs.next();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return false;
+    }
+
+
     public static void initialize() {
         String createTableSQL = "CREATE TABLE IF NOT EXISTS lectures ("
                 + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -48,6 +62,47 @@ public class DatabaseUtil {
             System.out.println(e.getMessage());
         }
     }
+    public static void initializeFreeRoomsTable() {
+        String createTableSQL = "CREATE TABLE IF NOT EXISTS freeRooms ("
+                + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + "roomName TEXT NOT NULL,"
+                + "startTime TEXT NOT NULL,"
+                + "endTime TEXT NOT NULL,"
+                + "day TEXT NOT NULL"
+                + ");";
+
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement()) {
+
+            stmt.execute(createTableSQL);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+
+    public void saveFreeRooms(List<FreeRoom> freeRooms) {
+        String insertSQL = "INSERT INTO freeRooms(roomName, startTime, endTime, day) VALUES(?,?,?,?)";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+
+            for (FreeRoom freeRoom : freeRooms) {
+                pstmt.setString(1, freeRoom.getRoomName());
+                pstmt.setString(2, freeRoom.getStartTime());
+                pstmt.setString(3, freeRoom.getEndTime());
+                pstmt.setString(4, freeRoom.getDay());
+                pstmt.addBatch();
+            }
+
+            pstmt.executeBatch();
+
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+
+
 
     public void saveLectures(List<Lecture> lectures) {
         String insertSQL = "INSERT INTO lectures(courseName, timeslot, batch, department, room, section, day) VALUES(?,?,?,?,?,?,?)";
@@ -140,5 +195,24 @@ public class DatabaseUtil {
 
         return lectures;
     }
+
+    public List<FreeRoom> loadFreeRooms() {
+        List<FreeRoom> rooms = new ArrayList<>();
+        String query = "SELECT roomName, startTime, endTime, day FROM freeRooms";
+        try (Connection conn = connect();
+            Statement statement = conn.createStatement();
+            ResultSet result = statement.executeQuery(query)) {
+            while (result.next()) {
+                FreeRoom room = new FreeRoom(result.getString("roomName"), result.getString("startTime"), result.getString("endTime"), result.getString("day"));
+                rooms.add(room);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        return rooms;
+    }
+
 }
 
