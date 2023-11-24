@@ -1,20 +1,35 @@
 package com.example.nusync.database;
 
+import at.favre.lib.crypto.bcrypt.BCrypt;
+import com.example.nusync.AuthenticationException;
+import com.example.nusync.UserNotFoundException;
 import com.example.nusync.data.FreeRoom;
 import com.example.nusync.data.Lecture;
+import com.example.nusync.data.Student;
+import com.example.nusync.data.TeacherAllocation;
 
-import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DatabaseUtil {
 
-    private static final String URL = "jdbc:sqlite:lectures.db";
-    private static final String DATABASE_PATH = "lectures.db";
+    // Update the JDBC URL to point to your MySQL server.
+    private static final String URL = "jdbc:mysql://localhost:3306/nusync?user=root&password=";
+    private static final String USER = "root";
+    private static final String PASSWORD = "";
 
+    // Ensure the MySQL driver is loaded.
+    static {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
 
     private static Connection connect() {
+        // Updated connection method for MySQL.
         Connection conn = null;
         try {
             conn = DriverManager.getConnection(URL);
@@ -24,61 +39,145 @@ public class DatabaseUtil {
         return conn;
     }
 
-    public boolean doesDatabaseExist() {
-        File databaseFile = new File(DATABASE_PATH);
-        return databaseFile.exists();
-    }
-
-    public boolean doesFreeRoomsTableExist() {
-        String checkTableExistenceSQL = "SELECT name FROM sqlite_master WHERE type='table' AND name='freeRooms';";
+    public boolean isTableEmpty(String tableName) {
+        String query = "SELECT COUNT(*) as count FROM " + tableName;
         try (Connection conn = connect();
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(checkTableExistenceSQL)) {
-            return rs.next();
+             ResultSet rs = stmt.executeQuery(query)) {
+            // If count is 0, the table is empty
+            if (rs.next()) {
+                return rs.getInt("count") == 0;
+            }
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
         return false;
     }
 
+    public boolean createStudent(String fullName, String email, String password, String section, String batch, String department) {
+        // Check if email already exists
+        String checkQuery = "SELECT email FROM students WHERE email = ?";
+        try (Connection conn = connect();
+             PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
+            checkStmt.setString(1, email);
+            ResultSet resultSet = checkStmt.executeQuery();
+            if (resultSet.next()) {
+                return false; // Email already exists
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        // Insert new student record
+        String insertQuery = "INSERT INTO students (full_name, email, password, section, batch, department) VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = connect();
+             PreparedStatement insertStmt = conn.prepareStatement(insertQuery)) {
+            insertStmt.setString(1, fullName);
+            insertStmt.setString(2, email);
+            insertStmt.setString(3, BCrypt.withDefaults().hashToString(12, password.toCharArray()));
+            insertStmt.setString(4, section);
+            insertStmt.setString(5, batch);
+            insertStmt.setString(6, department);
+            insertStmt.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public Student authenticateStudent(String email, String password) throws AuthenticationException, UserNotFoundException {
+        String query = "SELECT * FROM students WHERE email = ?";
+        try (Connection conn = connect();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, email);
+            ResultSet rs = stmt.executeQuery();
+
+            if (!rs.next()) {
+                throw new UserNotFoundException("User not found for email: " + email);
+            }
+
+            String storedHash = rs.getString("password");
+            BCrypt.Result result = BCrypt.verifyer().verify(password.toCharArray(), storedHash);
+            if (!result.verified) {
+                throw new AuthenticationException("Password does not match for email: " + email);
+            }
+
+            return new Student(
+                    rs.getString("full_name"),
+                    rs.getString("email"),
+                    rs.getString("section"),
+                    rs.getString("batch"),
+                    rs.getString("department")
+            );
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new AuthenticationException("An error occurred while attempting to authenticate.");
+        }
+    }
+
 
     public static void initialize() {
+        // MySQL uses AUTO_INCREMENT instead of AUTOINCREMENT
         String createTableSQL = "CREATE TABLE IF NOT EXISTS lectures ("
-                + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "courseName TEXT NOT NULL,"
-                + "timeslot TEXT NOT NULL,"
-                + "batch TEXT,"
-                + "department TEXT,"
-                + "room TEXT,"
-                + "section TEXT,"
-                + "day TEXT"
+                + "id INT PRIMARY KEY AUTO_INCREMENT,"
+                + "courseName VARCHAR(255) NOT NULL,"
+                + "timeslot VARCHAR(255) NOT NULL,"
+                + "batch VARCHAR(255),"
+                + "department VARCHAR(255),"
+                + "room VARCHAR(255),"
+                + "section VARCHAR(255),"
+                + "day VARCHAR(255)"
                 + ");";
 
         try (Connection conn = connect();
              Statement stmt = conn.createStatement()) {
-
             stmt.execute(createTableSQL);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
     }
+
     public static void initializeFreeRoomsTable() {
+        // Adjust syntax for MySQL.
         String createTableSQL = "CREATE TABLE IF NOT EXISTS freeRooms ("
-                + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "roomName TEXT NOT NULL,"
-                + "startTime TEXT NOT NULL,"
-                + "endTime TEXT NOT NULL,"
-                + "day TEXT NOT NULL"
+                + "id INT PRIMARY KEY AUTO_INCREMENT,"
+                + "roomName VARCHAR(255) NOT NULL,"
+                + "startTime VARCHAR(255) NOT NULL,"
+                + "endTime VARCHAR(255) NOT NULL,"
+                + "day VARCHAR(255) NOT NULL"
                 + ");";
 
         try (Connection conn = connect();
              Statement stmt = conn.createStatement()) {
-
             stmt.execute(createTableSQL);
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
     }
+
+    public static void initializeStudentsTable() {
+        String createTableSQL = "CREATE TABLE IF NOT EXISTS students ("
+                + "id INT PRIMARY KEY AUTO_INCREMENT,"
+                + "full_name VARCHAR(255) NOT NULL,"
+                + "email VARCHAR(255) NOT NULL UNIQUE,"
+                + "password VARCHAR(255) NOT NULL,"
+                + "section VARCHAR(50),"
+                + "batch VARCHAR(50),"
+                + "department VARCHAR(50)"
+                + ");";
+
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(createTableSQL);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+
+
 
 
     public void saveFreeRooms(List<FreeRoom> freeRooms) {
@@ -213,6 +312,80 @@ public class DatabaseUtil {
 
         return rooms;
     }
+
+    public static void initializeTeacherAllocationTable() {
+        String createTableSQL = "CREATE TABLE IF NOT EXISTS teacherAllocations ("
+                + "id INT PRIMARY KEY AUTO_INCREMENT,"
+                + "teacherName VARCHAR(255) NOT NULL,"
+                + "course VARCHAR(255) NOT NULL,"
+                + "department VARCHAR(255),"
+                + "section VARCHAR(255) NOT NULL,"
+                + "semester INT"
+                + ");";
+
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(createTableSQL);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public void saveTeacherAllocations(List<TeacherAllocation> allocations) {
+        String insertSQL = "INSERT INTO teacherAllocations(teacherName, course, department, section, semester) VALUES(?,?,?,?,?)";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+            for (TeacherAllocation allocation : allocations) {
+                pstmt.setString(1, allocation.getTeacherName());
+                pstmt.setString(2, allocation.getCourse());
+                pstmt.setString(3, allocation.getDepartment());
+                pstmt.setString(4, allocation.getSection());
+                pstmt.setInt(5, allocation.getSemester());
+                pstmt.addBatch();
+            }
+            pstmt.executeBatch();
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+
+    public List<Lecture> queryLecturesByInstructorAndDay(String instructor, String day, String courseName) {
+        List<Lecture> lectures = new ArrayList<>();
+        String query = "SELECT l.* FROM lectures l " +
+                "JOIN teacherAllocations ta ON l.courseName = ta.course " +
+                "WHERE ta.teacherName = ? AND l.day = ?";
+
+        // If a course name is provided, add it to the query.
+        if (courseName != null && !courseName.isEmpty()) {
+            query += " AND l.courseName = ?";
+        }
+
+        try (Connection conn = connect();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setString(1, instructor);
+            stmt.setString(2, day);
+
+            if (courseName != null && !courseName.isEmpty()) {
+                stmt.setString(3, courseName);
+            }
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                Lecture lecture = new Lecture();
+                //... set properties of lecture from ResultSet
+                lectures.add(lecture);
+            }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+
+        return lectures;
+    }
+
+
 
 }
 

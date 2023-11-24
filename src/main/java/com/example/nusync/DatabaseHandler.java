@@ -3,6 +3,7 @@ package com.example.nusync;
 import com.example.nusync.config.Config;
 import com.example.nusync.data.FreeRoom;
 import com.example.nusync.data.Lecture;
+import com.example.nusync.data.TeacherAllocation;
 import com.example.nusync.database.DatabaseUtil;
 import com.google.api.services.sheets.v4.model.GridData;
 import com.google.api.services.sheets.v4.model.RowData;
@@ -10,37 +11,45 @@ import com.google.api.services.sheets.v4.model.Sheet;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class DatabaseHandler {
 
 
     public CompletableFuture<Void> initializeDatabaseAsync() {
         return CompletableFuture.runAsync(() -> {
-            // Place the current initializeDatabase() code here
             DatabaseUtil dbUtil = new DatabaseUtil();
+            System.out.println("Table created");
 
-            if (!dbUtil.doesDatabaseExist()) {
-                // If the database doesn't exist, fetch data and create the database.
-                SheetsAPIFetcher fetcher = new SheetsAPIFetcher(Config.API_KEY, Config.COMPUTING_TIMETABLE_SPREADSHEET_ID);
-                String[] weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
 
+            // Initialize tables if they don't exist.
+            DatabaseUtil.initialize();
+            DatabaseUtil.initializeFreeRoomsTable();
+            DatabaseUtil.initializeTeacherAllocationTable();
+            DatabaseUtil.initializeStudentsTable();
+
+            SheetsAPIFetcher fetcher = new SheetsAPIFetcher();
+            String[] weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
+
+            // Check if lectures table is empty and fetch data if it is
+            if (dbUtil.isTableEmpty("lectures")) {
                 for (String day : weekdays) {
                     System.out.println("Fetching data for: " + day);
                     try {
-                        Sheet sheetData = fetcher.fetchDataAndFormat(day);
+                        Sheet sheetData = fetcher.fetchDataAndFormat(day, Config.COMPUTING_TIMETABLE_SPREADSHEET_ID);
                         List<GridData> gridDataList = sheetData.getData();
-                        List<List<Object>> values = fetcher.fetchSheetData(day);
+                        List<List<Object>> values = fetcher.fetchSheetData(day, Config.COMPUTING_TIMETABLE_SPREADSHEET_ID);
 
                         List<Lecture> lectures = processData(values, gridDataList, day);
-                        List<FreeRoom> freeRooms = processFreeRooms(values, gridDataList, day);
+                        lectures.sort(Comparator.comparing(Lecture::getTimeslot));
 
-                        DatabaseUtil.initialize();
-                        DatabaseUtil.initializeFreeRoomsTable();
+                        List<FreeRoom> freeRooms = computeFreeRooms(lectures, day);
+
+                        // Save the data to the database
                         dbUtil.saveLectures(lectures);
                         dbUtil.saveFreeRooms(freeRooms);
 
@@ -50,10 +59,97 @@ public class DatabaseHandler {
                     System.out.println("-----------------------");
                 }
             }
+
+            // Check if teacherAllocations table is empty and fetch data if it is
+            if (dbUtil.isTableEmpty("teacherAllocations")) {
+                String[] courseAllocationSheet = {"Theory-Computing", "Labs-Computing", "Sciences-Humanities", "MG"};
+                System.out.println("Fetching Teacher Course Allocations...");
+
+                for (String value : courseAllocationSheet) {
+                    System.out.println("Fetching Teacher Allocation Data for: " + value);
+                    try {
+                        List<List<Object>> values = fetcher.fetchSheetData(value, Config.TEACHER_ALLOCATION_SPREADSHEET_ID);
+
+                        List<TeacherAllocation> tas = processTA(values);
+                        // Save the teacher allocations to the database
+                        dbUtil.saveTeacherAllocations(tas);
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         });
     }
 
+
+
+    public static List<TeacherAllocation> processTA(List<List<Object>> values) {
+        List<TeacherAllocation> teacherAllocations = new ArrayList<>();
+
+        for (int i = 4; i < values.size(); i++) {
+            List<Object> row = values.get(i);
+            if (row.size() > 5) {
+                String courseName = "";
+                String sectionCode = "";
+                String instructor = "";
+                String department = "";
+                int semester = 0;
+                String section = "";
+
+                if (row.get(2) != null && !row.get(2).toString().trim().isEmpty()) {
+                    courseName = row.get(2).toString().trim();
+                }
+
+                if (row.get(4) != null && !row.get(4).toString().trim().isEmpty()) {
+                    sectionCode = row.get(4) != null ? row.get(4).toString().trim() : "";
+                    String[] parts = sectionCode.split("-");
+                    if (parts[0].startsWith("M")) { // Master's section, skip it
+                        continue;
+                    }
+                    if (parts[0].startsWith("B")) {
+                        department = parts[0].substring(1); // Skip 'B' and take the rest as department
+                    } else {
+                        department = parts[0]; // Take everything before '-' as department
+                    }
+                    if (parts.length > 1) {
+                        String secPart = parts[1];
+                        if (Character.isDigit(secPart.charAt(0))) {
+                            semester = Character.getNumericValue(secPart.charAt(0)); // First character is the semester number
+                            section = secPart.substring(1); // Rest is the section
+                        } else {
+                            // Handle cases where the section part does not start with a number
+                            // Here, assume the entire section part is the section code
+                            section = secPart;
+                        }
+
+                        // Format section for merged classes
+                        if (!section.contains("/") && section.length() > 1) {
+                            section = section.replaceAll("(\\D)(\\D)", "$1/$2"); // Add slash between characters
+                        }
+                    }
+                }
+
+                if (row.get(5) != null && !row.get(5).toString().trim().isEmpty()) {
+                    instructor = row.get(5).toString().trim();
+                }
+
+                if (!courseName.isEmpty() && !section.isEmpty() && !instructor.isEmpty()) {
+                    TeacherAllocation allocation = new TeacherAllocation(courseName, section, instructor);
+                    allocation.setDepartment(department);
+                    allocation.setSemester(semester);
+                    teacherAllocations.add(allocation);
+                }
+            }
+        }
+
+        return teacherAllocations;
+    }
+
+
     public static List<Lecture> processData(List<List<Object>> values, List<GridData> gridDataList, String day) {
+        final Pattern TIMESLOT_PATTERN = Pattern.compile("\\b\\d{2}:\\d{2}-\\d{2}:\\d{2}\\b");
+
         List<Lecture> lectures = new ArrayList<>();
         Map<String, String> colors = new HashMap<>(); // To store color-to-Batch mapping
         int timeslot_row_index = 4;
@@ -124,7 +220,7 @@ public class DatabaseHandler {
                         String courseInfo = cellValue.split("\\)")[0] + ")";
                         String restOfCell = cellValue.replace(courseInfo, "").trim();
 
-                        if (!restOfCell.isEmpty() && !restOfCell.equals("Resch")) {
+                        if (!restOfCell.isEmpty() && !restOfCell.equals("Resch") && !restOfCell.equals("ReSch") && !restOfCell.equals("Cancelled")) {
                             timeslot = restOfCell;
                         } else {
                             timeslot = values.get(timeslot_row_index).get(j).toString();
@@ -167,117 +263,90 @@ public class DatabaseHandler {
     }
 
     // ... existing code ...
+    private static String extractTimeslot(String cellValue, String defaultTimeslot) {
+        Matcher matcher = Pattern.compile("\\d{2}:\\d{2}-\\d{2}:\\d{2}").matcher(cellValue);
+        if (matcher.find()) {
+            return matcher.group();
+        } else if (cellValue.equalsIgnoreCase("ReSch")) {
+            return defaultTimeslot;
+        } else {
+            // Handle "Cancelled" or any other special cases if necessary
+        }
+        return "Unknown"; // or return null; depending on how you want to handle the absence of a timeslot
+    }
 
-    public List<FreeRoom> processFreeRooms(List<List<Object>> values, List<GridData> gridDataList, String day) {
+
+
+    public List<FreeRoom> computeFreeRooms(List<Lecture> lectures, String day) {
+        final LocalTime START_TIME = LocalTime.of(8, 0); // Rooms are available from 8 AM
+        final LocalTime END_TIME = LocalTime.of(20, 0); // Rooms are available until 8 PM
+        Map<String, TreeMap<LocalTime, Lecture>> roomSchedules = new HashMap<>();
+
+        for (Lecture lecture : lectures) {
+            LocalTime startTime = convertStringToTime(lecture.getTimeslot().split("-")[0]);
+            if (startTime != null) { // Only add to the map if the start time is valid
+                roomSchedules.computeIfAbsent(lecture.getRoom(), k -> new TreeMap<>()).put(startTime, lecture);
+            }
+        }
+
         List<FreeRoom> freeRoomsList = new ArrayList<>();
-        int timeslot_row_index = 4;
 
-        for (int i = 5; i < values.size(); i++) {
-            var row_values = values.get(i);
-            RowData rowData = gridDataList.get(0).getRowData().get(i);
+        for (Map.Entry<String, TreeMap<LocalTime, Lecture>> entry : roomSchedules.entrySet()) {
+            String room = entry.getKey();
+            TreeMap<LocalTime, Lecture> schedule = entry.getValue();
+            LocalTime currentTime = START_TIME;
 
-            String room = row_values.get(0).toString();
-
-            if ("Lab".equals(room)) {
-                timeslot_row_index = i;
-                continue;
+            for (Map.Entry<LocalTime, Lecture> scheduleEntry : schedule.entrySet()) {
+                LocalTime lectureStart = scheduleEntry.getKey();
+                if (currentTime.isBefore(lectureStart)) {
+                    freeRoomsList.add(new FreeRoom(room, timeToString(currentTime), timeToString(lectureStart), day));
+                }
+                LocalTime lectureEnd = convertStringToTime(scheduleEntry.getValue().getTimeslot().split("-")[1]);
+                if (lectureEnd != null) { // Update current time only if the end time is valid
+                    currentTime = lectureEnd;
+                }
             }
 
-            for (int j = 0; j < row_values.size(); j++) {
-                String cellValue = row_values.get(j).toString().trim();
-                String cellBackgroundColor = getCellBackgroundColor(rowData, j);
-
-                String[] customTimes = extractCustomTimes(cellValue);
-
-                String timeslot = values.get(timeslot_row_index).get(j).toString();
-                if (!timeslot.contains("-")) {
-                    continue;
-                }
-                String[] times = timeslot.split("-");
-                if (times.length != 2) {
-                    continue;
-                }
-
-                int defaultStart = convertToMinutes(times[0]);
-                int defaultEnd = convertToMinutes(times[1]);
-
-                int cellStart = customTimes[0] != null ? convertToMinutes(customTimes[0]) : defaultStart;
-                int cellEnd = customTimes[1] != null ? convertToMinutes(customTimes[1]) : defaultEnd;
-
-                processCell(cellValue, cellBackgroundColor, room, times, defaultStart, defaultEnd, cellStart, cellEnd, freeRoomsList, day);
+            if (currentTime.isBefore(END_TIME)) {
+                freeRoomsList.add(new FreeRoom(room, timeToString(currentTime), timeToString(END_TIME), day));
             }
         }
 
         return freeRoomsList;
     }
 
-    private String[] extractCustomTimes(String cellValue) {
-        String customStartTime = null;
-        String customEndTime = null;
-        if (cellValue.contains(")")) {
-            String[] parts = cellValue.split("\\)");
-            if (parts.length > 1) {
-                String postParenthesisStr = parts[1].trim();
-                if (postParenthesisStr.contains("-")) {
-                    String[] times = postParenthesisStr.split("-");
-                    if (times.length == 2) {
-                        customStartTime = times[0].trim();
-                        customEndTime = times[1].trim();
-                    }
-                }
-            }
+// The convertStringToTime and timeToString methods remain unchanged.
+
+
+    private LocalTime convertStringToTime(String timeString) {
+        if (timeString == null || timeString.isEmpty()) {
+            System.err.println("Time string is null or empty");
+            return null;
         }
-        return new String[]{customStartTime, customEndTime};
-    }
 
-    private void processCell(String cellValue, String cellBackgroundColor, String room, String[] times, int defaultStart, int defaultEnd, int cellStart, int cellEnd, List<FreeRoom> freeRoomsList, String day) {
-        if (cellValue.isBlank() && ("#FFFFFF".equalsIgnoreCase(cellBackgroundColor))) {
-            if (cellStart != -1 && cellEnd != -1) {
-                FreeRoom freeRoom = new FreeRoom(room, convertMinutesToTime(cellStart), convertMinutesToTime(cellEnd), day);
-                freeRoomsList.add(freeRoom);
-            } else {
-                FreeRoom freeRoom = new FreeRoom(room, times[0], times[1], day);
-                freeRoomsList.add(freeRoom);
-            }
-        } else if (defaultStart != cellStart || defaultEnd != cellEnd) {
-            if (defaultStart != cellStart) {
-                FreeRoom freeRoom = new FreeRoom(room, times[0], convertMinutesToTime(cellStart), day);
-                freeRoomsList.add(freeRoom);
-            }
-            if (defaultEnd != cellEnd) {
-                FreeRoom freeRoom = new FreeRoom(room, convertMinutesToTime(cellEnd), times[1], day);
-                freeRoomsList.add(freeRoom);
-            }
+        // Handle known keywords and formats
+        if (timeString.equalsIgnoreCase("Cancelled")) {
+            System.err.println("Lecture is cancelled: " + timeString);
+            return null;
         }
-    }
 
-    // Convert time in "HH:mm" format to minutes since midnight
-    private int convertToMinutes(String time) {
-        time = time.trim();
+        // Handle rescheduled times with "ReSch" at the beginning or end of the string
+        String processedTime = timeString.replaceFirst("(?i)ReSch", "").trim();
+        processedTime = processedTime.replaceFirst("(\\d{1,2}:\\d{2}-\\d{1,2}:\\d{2})$", "").trim();
 
-        String[] parts = time.split(":");
-        if (parts.length != 2 || !isNumeric(parts[0]) || !isNumeric(parts[1])) {
-            System.out.println("Invalid time format: " + time);
-            return -1;
-        }
-        return Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]);
-    }
-
-    // Check if a string is numeric
-    private boolean isNumeric(String str) {
+        // Now try to parse the processed time
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("H:mm");
         try {
-            Integer.parseInt(str);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
+            return LocalTime.parse(processedTime, timeFormatter);
+        } catch (DateTimeParseException e) {
+            System.err.println("Invalid time format: " + processedTime);
+            return null;
         }
     }
 
-    // Convert minutes since midnight back to "HH:mm" format
-    private String convertMinutesToTime(int minutes) {
-        int hours = minutes / 60;
-        int mins = minutes % 60;
-        return String.format("%02d:%02d", hours, mins);
+
+    private String timeToString(LocalTime time) {
+        return time.format(DateTimeFormatter.ofPattern("HH:mm"));
     }
 
 

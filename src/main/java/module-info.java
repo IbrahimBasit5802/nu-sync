@@ -16,10 +16,14 @@ module com.example.nusync {
     requires google.api.client;
     requires google.http.client.jackson2;
     requires java.sql;
+    requires bcrypt;
+
     //requires eu.hansolo.tilesfx;
 
-    opens com.example.nusync to javafx.fxml;
+    opens com.example.nusync to javafx.fxml, org.controlsfx.controls;
     exports com.example.nusync;
     exports com.example.nusync.controllers;
     opens com.example.nusync.controllers to javafx.fxml;
+
+
 }

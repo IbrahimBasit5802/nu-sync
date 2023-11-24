@@ -43,7 +43,7 @@ public class TimeTableController {
     @FXML
     public void initialize() {
         // Sample data for the selectors. Replace with real data as needed.
-        sectionSelector.getItems().addAll("A", "B", "C", "D", "E", "F", "G", "H");
+        sectionSelector.getItems().addAll("A", "B", "C", "D", "E", "F", "G", "H", "J", "K");
         daySelector.getItems().addAll("Monday", "Tuesday", "Wednesday", "Thursday", "Friday");
         batchSelector.getItems().addAll("23", "22", "21", "20");
         departmentSelector.getItems().addAll("CS", "AI", "DS", "CY", "SE");

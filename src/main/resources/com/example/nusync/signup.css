@@ -1,0 +1,53 @@
+/* Sign Up Form Styles */
+.root {
+    -fx-font-family: 'Arial';
+    -fx-font-size: 14px;
+}
+
+.label {
+    -fx-text-fill: #333;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.text-field, .password-field, .combo-box {
+    -fx-padding: 8px;
+    -fx-border-radius: 5px;
+    -fx-border-width: 2px;
+    -fx-border-color: #ced4da;
+    -fx-background-color: white;
+}
+
+.text-field:focused, .password-field:focused, .combo-box:focused {
+    -fx-border-color: #80bdff;
+}
+
+.text-field[promptText], .password-field[promptText] {
+    -fx-prompt-text-fill: derive(-fx-control-inner-background, -30%);
+}
+
+.button {
+    -fx-background-color: #28a745;
+    -fx-text-fill: white;
+    -fx-padding: 10px 20px;
+    -fx-border-radius: 5px;
+}
+
+.button:hover {
+    -fx-background-color: #218838;
+}
+
+.button:focused, .button:default {
+    -fx-background-color: #1e7e34;
+}
+
+#signUpBox {
+    -fx-background-color: #f8f9fa;
+    -fx-border-radius: 5px;
+    -fx-border-width: 1px;
+    -fx-border-color: #ddd;
+}
+
+#errorLabel {
+    -fx-font-size: 12px;
+}

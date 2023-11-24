@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox fx:id="signUpBox" stylesheets="@signup.css" spacing="10" alignment="CENTER" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.nusync.controllers.StudentSignUpController">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="Sign Up" />
+
+    <TextField fx:id="fullNameField" promptText="Full Name"/>
+    <TextField fx:id="emailField" promptText="Email"/>
+    <PasswordField fx:id="passwordField" promptText="Password"/>
+
+    <!-- Batch Label and ComboBox -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Batch:" />
+        <ComboBox fx:id="batchComboBox" HBox.hgrow="ALWAYS" />
+        <Label text="Department:" />
+        <ComboBox fx:id="departmentComboBox" HBox.hgrow="ALWAYS" />
+        <Label text="Section:" />
+        <ComboBox fx:id="sectionComboBox" HBox.hgrow="ALWAYS" />
+    </HBox>
+
+
+
+    <Button text="Sign Up" onAction="#handleSignUp"/>
+    <Button text="Login Instead" onAction="#handleGoToLogin"/>
+    <Label fx:id="errorLabel" textFill="red" />
+</VBox>

@@ -4,7 +4,9 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
+import org.bson.Document;
 
+import java.util.List;
 import java.util.Objects;
 
 public class NUSync extends Application {
@@ -21,6 +23,9 @@ public class NUSync extends Application {
     }
     public static void main(String[] args) {
         DatabaseHandler dbHandler = new DatabaseHandler();
+        // TODO: find better ways to initalize databases. remove redundancy
+        dbHandler.initializeDatabaseAsync();
+
         launch(args);
     }
 

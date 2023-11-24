@@ -1,0 +1,63 @@
+/* Global Styles */
+.root {
+    -fx-background-color: #eceff1; /* Light grey background for the whole scene */
+}
+
+/* VBox styles */
+#signInBox {
+    -fx-background-color: #ffffff; /* White background for the form */
+    -fx-border-radius: 15;
+    -fx-border-width: 2;
+    -fx-border-color: #b0bec5; /* Light blue border */
+    -fx-padding: 20;
+    -fx-spacing: 8; /* Space between children */
+    -fx-alignment: center;
+}
+
+/* Label styles */
+.label {
+    -fx-font-size: 14px;
+    -fx-text-fill: #37474f; /* Dark grey color */
+}
+
+/* Text field and password field styles */
+.text-field, .password-field {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #b0bec5; /* Light blue border */
+    -fx-border-radius: 5;
+    -fx-padding: 10;
+}
+
+/* Button styles */
+.button {
+    -fx-background-color: #1e88e5; /* Blue background for buttons */
+    -fx-text-fill: #ffffff; /* White text */
+    -fx-border-radius: 5;
+    -fx-padding: 10 20;
+    -fx-font-weight: bold;
+}
+
+.button:hover {
+    -fx-background-color: #1565c0; /* Darker blue on hover */
+}
+
+/* Error label styles */
+#errorLabel {
+    -fx-text-fill: #d32f2f; /* Red color for error messages */
+}
+
+/* Styles for the HBox that will contain the 'Create an Account' and 'Forgot Password' buttons */
+.hbox-links {
+    -fx-spacing: 10;
+    -fx-alignment: center;
+}
+
+/* Styles specifically for the 'Create an Account' and 'Forgot Password' buttons */
+.link-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #1e88e5;
+    -fx-padding: 0;
+    -fx-underline: true;
+}
+
+

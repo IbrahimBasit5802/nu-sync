@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox fx:id="signInBox" stylesheets="@login.css" spacing="10" alignment="CENTER" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.nusync.controllers.StudentLoginController">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="Login" />
+
+    <Label text="Email:" />
+    <TextField fx:id="emailField" />
+    <Label text="Password:" />
+    <PasswordField fx:id="passwordField" />
+
+    <!-- Login button -->
+    <Button fx:id="loginButton" text="Login" onAction="#handleLogin" id="loginButton" />
+    <HBox id="hboxLinks" spacing="10" alignment="CENTER">
+    <Button text="Create an Account" onAction="#handleCreateAccount" styleClass="link-button" />
+    <Region HBox.hgrow="ALWAYS"/> <!-- This pushes the two buttons to the sides -->
+    <Button text="Forgot Password" onAction="#handleForgotPassword" styleClass="link-button" />
+</HBox>
+
+    <!-- Error label -->
+    <Label fx:id="errorLabel" />
+</VBox>
