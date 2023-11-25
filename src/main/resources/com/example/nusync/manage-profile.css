@@ -1,27 +1,29 @@
-/* Sign Up Form Styles */
-.root {
-    -fx-font-family: 'Arial';
-    -fx-font-size: 14px;
-}
-
-.label {
-    -fx-text-fill: #333;
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
-}
-
-.text-field, .password-field, .combo-box {
-    -fx-padding: 8px;
-    -fx-border-radius: 5px;
-    -fx-border-width: 2px;
-    -fx-border-color: #ced4da;
-    -fx-background-color: white;
+.profile-container {
+    -fx-spacing: 15;
+    -fx-alignment: center;
 }
 
 .header-label {
     -fx-font-size: 24px;
     -fx-font-weight: bold;
     -fx-text-fill: #2f4f4f;
+}
+
+/* ... add additional styles here as needed ... */
+.combo-box {
+    -fx-background-color: white;
+    -fx-border-color: #B0BEC5; /* Blue Grey */
+    -fx-border-width: 0 0 2 0; /* Border only on the bottom side */
+    -fx-border-radius: 0;
+}
+
+/* Button Styles */
+.text-field, .password-field, .combo-box {
+    -fx-padding: 8px;
+    -fx-border-radius: 5px;
+    -fx-border-width: 2px;
+    -fx-border-color: #ced4da;
+    -fx-background-color: white;
 }
 
 .text-field:focused, .password-field:focused, .combo-box:focused {
@@ -47,13 +49,9 @@
     -fx-background-color: #1e7e34;
 }
 
-#signUpBox {
-    -fx-background-color: #f8f9fa;
-    -fx-border-radius: 5px;
-    -fx-border-width: 1px;
-    -fx-border-color: #ddd;
-}
-
-#errorLabel {
-    -fx-font-size: 12px;
+/* HBox Styles */
+.hbox {
+    -fx-padding: 15;
+    -fx-spacing: 10; /* Spacing between elements */
+    -fx-alignment: center-left;
 }

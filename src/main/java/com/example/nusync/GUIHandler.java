@@ -1,8 +1,7 @@
 package com.example.nusync;
 
-import com.example.nusync.controllers.FreeRoomsController;
-import com.example.nusync.controllers.StudentLoginController;
-import com.example.nusync.controllers.StudentSignUpController;
+import com.example.nusync.controllers.*;
+import com.example.nusync.data.Student;
 import javafx.animation.PauseTransition;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -20,6 +19,9 @@ public class GUIHandler {
 
     private BorderPane rootLayout;
     private Stage primaryStage;
+
+
+    private Student current_student;
 
     public Scene initGUI(Stage stage) {
         this.primaryStage = stage;
@@ -68,19 +70,26 @@ public class GUIHandler {
         rootLayout.setTop(null); // This will remove the toolbar from the top region
     }
 
+    public void setCurrentStudent(Student currentStudent) {
+        this.current_student = currentStudent;
+    }
 
 
 
+    public void switchToMainApp(Student student) {
+        setCurrentStudent(student); // Store the authenticated/created student
 
-    public void switchToMainApp() {
         setupToolBar();
         switchToTimetable(); // Or whichever is the default view of your app
+
     }
     private void setupToolBar() {
         ToolBar toolBar = new ToolBar();
 
         Button viewTimetableBtn = new Button("View Timetable");
         Button viewFreeRoomsBtn = new Button("View Free Rooms");
+        Button manageProfileBtn = new Button("Manage Profile");
+
         Button logoutButton = new Button("Logout");
        // Button viewTeacherAllocationBtn = new Button("Teacher Allocation");
 
@@ -91,17 +100,17 @@ public class GUIHandler {
 
         viewTimetableBtn.setOnAction(event -> switchToTimetable());
         viewFreeRoomsBtn.setOnAction(event -> switchToFreeRooms());
+        manageProfileBtn.setOnAction(event -> switchToManageProfile());
+
         logoutButton.setOnAction(event -> switchToLogin());
 //        viewTeacherAllocationBtn.setOnAction(event -> switchToTeacherAllocation());
 
-        toolBar.getItems().addAll(viewTimetableBtn, viewFreeRoomsBtn, logoutButton);
+        toolBar.getItems().addAll(viewTimetableBtn, viewFreeRoomsBtn, manageProfileBtn, logoutButton);
 //        toolBar.getItems().add(viewTeacherAllocationBtn);
 
         // Style the toolbar (optional but recommended)
         toolBar.setStyle("-fx-background-color: #2f4f4f;"); // Dark slate gray color
-        viewTimetableBtn.setStyle("-fx-text-fill: white; -fx-background-color: #696969;"); // Dim gray
-        viewFreeRoomsBtn.setStyle("-fx-text-fill: white; -fx-background-color: #696969;");
-        logoutButton.setStyle("-fx-text-fill: white; -fx-background-color: #696969;");// Dim gray
+
 
         rootLayout.setTop(toolBar);
     }
@@ -109,12 +118,45 @@ public class GUIHandler {
 
     private void switchToTimetable() {
         try {
-            Node timetableView = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("timetable-view.fxml")));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("timetable-view.fxml"));
+            // Set the controller before loading the FXML
+            TimeTableController timetableController = new TimeTableController(current_student);
+            loader.setController(timetableController);
+            Node timetableView = loader.load();
             rootLayout.setCenter(timetableView);
+            primaryStage.sizeToScene();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+    public void switchToManageProfile() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("manage-profile.fxml"));
+            ManageProfileController profileController = new ManageProfileController(current_student);
+            loader.setController(profileController);
+            Node manageProfileView = loader.load();
+            rootLayout.setCenter(manageProfileView);
+            primaryStage.sizeToScene(); // Resize the stage to fit the scene's new size
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void switchToForgotPassword() {
+        try {
+            FXMLLoader forgotLoader = new FXMLLoader(getClass().getResource("forgot-password.fxml"));
+            Node forgotView = forgotLoader.load();
+            ForgotPasswordController forgotController = forgotLoader.getController();
+            forgotController.setGuiHandler(this);
+            rootLayout.setCenter(forgotView);
+            primaryStage.sizeToScene(); // Resize the stage to fit the scene's new size
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
 
     public BorderPane getRootLayout() {
         return rootLayout;

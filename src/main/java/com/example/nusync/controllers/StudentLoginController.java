@@ -39,7 +39,7 @@ public class StudentLoginController {
         // Authenticate the student
         try {
             Student authenticatedStudent = dbUtil.authenticateStudent(email, password);
-            guiHandler.switchToMainApp();
+            guiHandler.switchToMainApp(authenticatedStudent);
             // Continue with authenticated student
         } catch (UserNotFoundException e) {
             // Handle user not found situation
@@ -53,6 +53,8 @@ public class StudentLoginController {
 
     @FXML
     private void handleForgotPassword() {
+
+        guiHandler.switchToForgotPassword();
         // Implement the functionality for password recovery here
         // This can be done in a later development phase
     }

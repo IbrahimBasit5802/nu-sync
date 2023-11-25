@@ -1,0 +1,72 @@
+.list-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #c0c0c0;
+    -fx-border-radius: 5;
+}
+
+.list-cell {
+    -fx-padding: 10px;
+    -fx-border-color: transparent transparent #e0e0e0 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.list-cell:filled:selected, .list-cell:filled:selected:hover {
+    -fx-background-color: #b3e5fc;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+}
+
+.list-cell:filled:hover {
+    -fx-background-color: #e1f5fe;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+}
+
+
+.list-view {
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: #BDBDBD; /* Grey */
+    -fx-border-width: 1;
+    -fx-padding: 5;
+}
+
+/* Progress Indicator */
+.progress-indicator {
+    -fx-pref-width: 24;
+    -fx-pref-height: 24;
+    -fx-progress-color: #FFC107;
+}
+
+/* Text for Loading Message */
+.label-loading {
+    -fx-font-style: italic;
+    -fx-text-fill: #757575; /* Material Design Grey */
+}
+
+/* VBox Styles */
+.vbox {
+    -fx-spacing: 20; /* Spacing between elements in VBox */
+    -fx-alignment: top-center;
+}
+
+.root {
+    -fx-font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+    -fx-base: #607D8B; /* Material Design Blue Grey */
+    -fx-background: #EEEEEE; /* Light Grey */
+}
+
+.button {
+    -fx-background-color: #FFC107; /* Material Design Amber */
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 10 20;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.button:hover {
+    -fx-background-color: #FFA000; /* Darker Amber */
+}
+

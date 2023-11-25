@@ -9,6 +9,8 @@ import com.example.nusync.data.Student;
 import com.example.nusync.data.TeacherAllocation;
 
 import java.sql.*;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,7 +30,7 @@ public class DatabaseUtil {
         }
     }
 
-    private static Connection connect() {
+    public static Connection connect() {
         // Updated connection method for MySQL.
         Connection conn = null;
         try {
@@ -107,9 +109,11 @@ public class DatabaseUtil {
             return new Student(
                     rs.getString("full_name"),
                     rs.getString("email"),
+                    rs.getString("password"),
                     rs.getString("section"),
                     rs.getString("batch"),
                     rs.getString("department")
+
             );
         } catch (SQLException e) {
             e.printStackTrace();
@@ -128,7 +132,8 @@ public class DatabaseUtil {
                 + "department VARCHAR(255),"
                 + "room VARCHAR(255),"
                 + "section VARCHAR(255),"
-                + "day VARCHAR(255)"
+                + "day VARCHAR(255),"
+                + "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
                 + ");";
 
         try (Connection conn = connect();
@@ -146,7 +151,8 @@ public class DatabaseUtil {
                 + "roomName VARCHAR(255) NOT NULL,"
                 + "startTime VARCHAR(255) NOT NULL,"
                 + "endTime VARCHAR(255) NOT NULL,"
-                + "day VARCHAR(255) NOT NULL"
+                + "day VARCHAR(255) NOT NULL,"
+                + "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
                 + ");";
 
         try (Connection conn = connect();
@@ -174,6 +180,32 @@ public class DatabaseUtil {
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
+    }
+    public void clearTable(String tableName) {
+        String sql = "DELETE FROM " + tableName;
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.out.println("Error clearing table " + tableName + ": " + e.getMessage());
+        }
+    }
+
+    public boolean isDataStale(String tableName) {
+        String query = "SELECT MAX(last_updated) FROM " + tableName;
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+            if (rs.next()) {
+                Timestamp lastUpdated = rs.getTimestamp(1);
+                if (lastUpdated != null) {
+                    return lastUpdated.toInstant().isBefore(Instant.now().minus(Duration.ofDays(1)));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return true; // Assume stale if any exceptions occur
     }
 
 
@@ -226,11 +258,10 @@ public class DatabaseUtil {
         }
     }
 
-    public List<Lecture> queryLectures(String section, String day, String batch, String department) {
+    public List<Lecture> queryLectures(String section, String batch, String department) {
         List<Lecture> lectures = new ArrayList<>();
         String query = "SELECT * FROM lectures WHERE "
                 + "section LIKE ? AND "
-                + "day = ? AND "
                 + "batch = ? AND "
                 + "department = ?";
 
@@ -238,9 +269,8 @@ public class DatabaseUtil {
              PreparedStatement statement = connection.prepareStatement(query)) {
 
             statement.setString(1, "%" + section + "%");
-            statement.setString(2, day);
-            statement.setString(3, batch);
-            statement.setString(4, department);
+            statement.setString(2, batch);
+            statement.setString(3, department);
 
             ResultSet resultSet = statement.executeQuery();
 
@@ -248,6 +278,7 @@ public class DatabaseUtil {
                 String courseName = resultSet.getString("courseName");
                 String timeslot = resultSet.getString("timeslot");
                 String room = resultSet.getString("room");
+                String day = resultSet.getString(("day"));
                 //... Extract other fields as needed
 
                 Lecture lecture = new Lecture();
@@ -313,6 +344,10 @@ public class DatabaseUtil {
         return rooms;
     }
 
+    // In DatabaseUtil.java
+
+
+
     public static void initializeTeacherAllocationTable() {
         String createTableSQL = "CREATE TABLE IF NOT EXISTS teacherAllocations ("
                 + "id INT PRIMARY KEY AUTO_INCREMENT,"
@@ -320,7 +355,8 @@ public class DatabaseUtil {
                 + "course VARCHAR(255) NOT NULL,"
                 + "department VARCHAR(255),"
                 + "section VARCHAR(255) NOT NULL,"
-                + "semester INT"
+                + "semester INT,"
+                + "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
                 + ");";
 
         try (Connection conn = connect();

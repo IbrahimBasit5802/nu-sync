@@ -3,12 +3,12 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 
-<VBox fx:id="signUpBox" stylesheets="@signup.css" spacing="10" alignment="CENTER" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.nusync.controllers.StudentSignUpController">
+<VBox fx:id="signUpBox" stylesheets="@signup.css" spacing="20" alignment="CENTER" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.nusync.controllers.StudentSignUpController">
     <padding>
         <Insets top="20" right="20" bottom="20" left="20"/>
     </padding>
 
-    <Label text="Sign Up" />
+    <Label text="Sign Up" styleClass="header-label"/>
 
     <TextField fx:id="fullNameField" promptText="Full Name"/>
     <TextField fx:id="emailField" promptText="Email"/>

@@ -1,6 +1,7 @@
 package com.example.nusync.controllers;
 
 import com.example.nusync.GUIHandler;
+import com.example.nusync.data.Student;
 import com.example.nusync.database.DatabaseUtil;
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
@@ -80,7 +81,8 @@ public class StudentSignUpController {
 
         else {
             // If sign-up is successful:
-            guiHandler.switchToMainApp();
+            Student createdStudent = new Student(fullName, email, password, section, batch, department);
+            guiHandler.switchToMainApp(createdStudent);
         }
 
 

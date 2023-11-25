@@ -15,9 +15,12 @@
 }
 
 /* Label styles */
-.label {
-    -fx-font-size: 14px;
-    -fx-text-fill: #37474f; /* Dark grey color */
+
+
+.header-label {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2f4f4f;
 }
 
 /* Text field and password field styles */

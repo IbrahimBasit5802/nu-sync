@@ -9,6 +9,9 @@ import com.google.api.services.sheets.v4.model.GridData;
 import com.google.api.services.sheets.v4.model.RowData;
 import com.google.api.services.sheets.v4.model.Sheet;
 
+import java.sql.*;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -20,10 +23,10 @@ import java.util.regex.Pattern;
 public class DatabaseHandler {
 
 
+
     public CompletableFuture<Void> initializeDatabaseAsync() {
         return CompletableFuture.runAsync(() -> {
             DatabaseUtil dbUtil = new DatabaseUtil();
-            System.out.println("Table created");
 
 
             // Initialize tables if they don't exist.
@@ -36,7 +39,9 @@ public class DatabaseHandler {
             String[] weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
 
             // Check if lectures table is empty and fetch data if it is
-            if (dbUtil.isTableEmpty("lectures")) {
+            if (dbUtil.isTableEmpty("lectures") || dbUtil.isDataStale("lectures") || dbUtil.isTableEmpty("freeRooms") || dbUtil.isDataStale("freeRooms")) {
+                dbUtil.clearTable("lectures");
+                dbUtil.clearTable("freeRooms");
                 for (String day : weekdays) {
                     System.out.println("Fetching data for: " + day);
                     try {
@@ -48,6 +53,8 @@ public class DatabaseHandler {
                         lectures.sort(Comparator.comparing(Lecture::getTimeslot));
 
                         List<FreeRoom> freeRooms = computeFreeRooms(lectures, day);
+
+
 
                         // Save the data to the database
                         dbUtil.saveLectures(lectures);
@@ -61,7 +68,8 @@ public class DatabaseHandler {
             }
 
             // Check if teacherAllocations table is empty and fetch data if it is
-            if (dbUtil.isTableEmpty("teacherAllocations")) {
+            if (dbUtil.isTableEmpty("teacherAllocations") || dbUtil.isDataStale("teacherAllocations")) {
+                dbUtil.clearTable("teacherAllocations");
                 String[] courseAllocationSheet = {"Theory-Computing", "Labs-Computing", "Sciences-Humanities", "MG"};
                 System.out.println("Fetching Teacher Course Allocations...");
 
@@ -146,28 +154,173 @@ public class DatabaseHandler {
         return teacherAllocations;
     }
 
+    private static Lecture processRepeatOrElectiveCourseCell(String cellValue, String batchOrType, String room, String day, Pattern timeslotPattern) {
+        Lecture lecture = new Lecture();
+        lecture.setRoom(room);
+        lecture.setDay(day);
+        lecture.setBatch(batchOrType); // This could be "Repeat" or "19-Electives"
 
-    public static List<Lecture> processData(List<List<Object>> values, List<GridData> gridDataList, String day) {
+        // Check if there is a timeslot within the cell
+        Matcher timeslotMatcher = timeslotPattern.matcher(cellValue);
+        if (timeslotMatcher.find()) {
+            lecture.setTimeslot(timeslotMatcher.group());
+            cellValue = cellValue.replace(timeslotMatcher.group(), "").trim(); // Remove the timeslot from the cell value
+        }
+
+        // Split the remaining cell value based on parentheses
+        String[] parts = cellValue.split("[()]");
+        if (parts.length > 0) {
+            lecture.setCourseName(parts[0].trim()); // The course name is before the parentheses
+
+            if (parts.length > 1) {
+                // Inside the parentheses, we could have a department, section, or both
+                String insideParens = parts[1].trim();
+                String[] insideParts = insideParens.split("[,-]");
+                if (insideParts.length == 1) {
+                    // Only department or only section is given
+                    String firstPart = insideParts[0].trim();
+                    if (Character.isDigit(firstPart.charAt(0))) {
+                        // If it starts with a digit, it's a batch number
+                        lecture.setBatch(firstPart);
+                    } else {
+                        // Otherwise, it's a department code or a section
+                        if (firstPart.length() == 1 || firstPart.contains("/")) {
+                            lecture.setSection(firstPart);
+                        } else {
+                            lecture.setDepartment(firstPart);
+                        }
+                    }
+                } else if (insideParts.length == 2) {
+                    // We have both department and section
+                    lecture.setDepartment(insideParts[0].trim());
+                    lecture.setSection(insideParts[1].trim());
+                } else if (insideParts.length == 3) {
+                    // We have department, section, and batch
+                    lecture.setDepartment(insideParts[0].trim());
+                    lecture.setSection(insideParts[1].trim());
+                    lecture.setBatch(insideParts[2].trim());
+                }
+            }
+        }
+        return lecture;
+    }
+
+        public static List<Lecture> processData(List<List<Object>> values, List<GridData> gridDataList, String day) {
         final Pattern TIMESLOT_PATTERN = Pattern.compile("\\b\\d{2}:\\d{2}-\\d{2}:\\d{2}\\b");
 
         List<Lecture> lectures = new ArrayList<>();
-        Map<String, String> colors = new HashMap<>(); // To store color-to-Batch mapping
+        Map<String, String> colors = getColors(values, gridDataList);
+
         int timeslot_row_index = 4;
+
+
+        // Processing lectures
+        for (int i = 5; i < values.size(); i++) {
+            List<Object> row_values = values.get(i);
+            RowData rowData = gridDataList.get(0).getRowData().get(i);
+
+            String room = row_values.get(0).toString();
+
+            if ("Lab".equals(room)) {
+                timeslot_row_index = i;
+                continue;
+            }
+
+            for (int j = 0; j < row_values.size(); j++) {
+                String cellValue = row_values.get(j).toString().trim();
+                String cellBackgroundColor = getCellBackgroundColor(rowData, j);
+
+
+                if (!cellValue.isEmpty()) {
+                    String batchOrType = colors.get(cellBackgroundColor); // This could be "Repeat", "19-Electives", or a batch number
+
+                    // Check if this is a repeat or elective course cell
+                    if ("Repeat".equals(batchOrType) || "19-Electives".equals(batchOrType)) {
+                        // Handle the cell value processing for repeat and elective courses
+                        Lecture lecture = processRepeatOrElectiveCourseCell(cellValue, batchOrType, room, day, TIMESLOT_PATTERN);
+                        if (lecture != null) {
+                            lectures.add(lecture);
+                        }
+                    }
+                    else {
+                        String timeslot;
+                        if (cellValue.contains(")")) {
+                            String courseInfo = cellValue.split("\\)")[0] + ")";
+                            String restOfCell = cellValue.replace(courseInfo, "").trim();
+
+                            if (!restOfCell.isEmpty() && !restOfCell.equals("Resch") && !restOfCell.equals("ReSch") && !restOfCell.equals("Cancelled")) {
+                                timeslot = restOfCell;
+                            } else {
+                                timeslot = values.get(timeslot_row_index).get(j).toString();
+                            }
+
+                            String[] parts = courseInfo.split("[()]");
+                            if (parts.length >= 2) {
+                                String courseName = parts[0].trim();
+                                String[] courseParts = parts[1].trim().split("-");
+
+                                String department = "";
+                                String section = "";
+                                if (courseParts.length >= 2) {
+                                    department = courseParts[0].trim();
+                                    section = courseParts[1].trim();
+                                }
+
+                                String batch = colors.get(cellBackgroundColor);
+
+                                if (batch != null) {
+                                    Lecture newLecture = new Lecture();
+                                    newLecture.setCourseName(courseName);
+                                    newLecture.setTimeslot(timeslot);
+                                    newLecture.setBatch(batch);
+                                    newLecture.setDepartment(department);
+                                    newLecture.setRoom(room);
+                                    newLecture.setSection(section);
+                                    newLecture.setDay(day);
+
+                                    lectures.add(newLecture);
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+
+        return lectures;
+    }
+
+    private static Map<String, String> getColors(List<List<Object>> values, List<GridData> gridDataList) {
+        Map<String, String> colors = new HashMap<>(); // To store color-to-Batch mapping
 
         // Processing colors for batches
         for (int i = 0; i < 4; i++) {
             List<Object> row_vals = values.get(i);
             RowData rowData = gridDataList.get(0).getRowData().get(i);
-            for (int j = 4; j < 17; j++) {
+            for (int j = 4; j < 19; j++) {
+                if (j == 18 && (i == 2 || i == 3)) {
+                    continue;
+                }
                 String bg = null;
                 String cell = row_vals.get(j).toString().trim();
                 if (!cell.isEmpty()) {
                     String batch = null;
                     if (cell.contains("(")) {
-                        String[] parts = cell.split("[()]");
-                        if (parts.length > 1) {
-                            batch = parts[1].substring(parts[1].length() - 2); // Get the last two characters
+                        if (cell.contains("Electives")) {
+                            batch = "19-Electives";
                         }
+                        else {
+                            String[] parts = cell.split("[()]");
+                            if (parts.length > 1) {
+                                batch = parts[1].substring(parts[1].length() - 2); // Get the last two characters
+                            }
+                        }
+
+                    }
+
+                    else {
+                        batch = "Repeat";
                     }
 
                     var bgColor = rowData.getValues().get(j).getEffectiveFormat().getBackgroundColor();
@@ -198,83 +351,8 @@ public class DatabaseHandler {
                 }
             }
         }
-
-        // Processing lectures
-        for (int i = 5; i < values.size(); i++) {
-            List<Object> row_values = values.get(i);
-            RowData rowData = gridDataList.get(0).getRowData().get(i);
-
-            String room = row_values.get(0).toString();
-
-            if ("Lab".equals(room)) {
-                timeslot_row_index = i;
-                continue;
-            }
-
-            for (int j = 0; j < row_values.size(); j++) {
-                String cellValue = row_values.get(j).toString().trim();
-
-                if (!cellValue.isEmpty()) {
-                    String timeslot;
-                    if (cellValue.contains(")")) {
-                        String courseInfo = cellValue.split("\\)")[0] + ")";
-                        String restOfCell = cellValue.replace(courseInfo, "").trim();
-
-                        if (!restOfCell.isEmpty() && !restOfCell.equals("Resch") && !restOfCell.equals("ReSch") && !restOfCell.equals("Cancelled")) {
-                            timeslot = restOfCell;
-                        } else {
-                            timeslot = values.get(timeslot_row_index).get(j).toString();
-                        }
-
-                        String[] parts = courseInfo.split("[()]");
-                        if (parts.length >= 2) {
-                            String courseName = parts[0].trim();
-                            String[] courseParts = parts[1].trim().split("-");
-
-                            String department = "";
-                            String section = "";
-                            if (courseParts.length >= 2) {
-                                department = courseParts[0].trim();
-                                section = courseParts[1].trim();
-                            }
-
-                            String cellBackgroundColor = getCellBackgroundColor(rowData, j);
-                            String batch = colors.get(cellBackgroundColor);
-
-                            if (batch != null) {
-                                Lecture newLecture = new Lecture();
-                                newLecture.setCourseName(courseName);
-                                newLecture.setTimeslot(timeslot);
-                                newLecture.setBatch(batch);
-                                newLecture.setDepartment(department);
-                                newLecture.setRoom(room);
-                                newLecture.setSection(section);
-                                newLecture.setDay(day);
-
-                                lectures.add(newLecture);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return lectures;
+        return colors;
     }
-
-    // ... existing code ...
-    private static String extractTimeslot(String cellValue, String defaultTimeslot) {
-        Matcher matcher = Pattern.compile("\\d{2}:\\d{2}-\\d{2}:\\d{2}").matcher(cellValue);
-        if (matcher.find()) {
-            return matcher.group();
-        } else if (cellValue.equalsIgnoreCase("ReSch")) {
-            return defaultTimeslot;
-        } else {
-            // Handle "Cancelled" or any other special cases if necessary
-        }
-        return "Unknown"; // or return null; depending on how you want to handle the absence of a timeslot
-    }
-
 
 
     public List<FreeRoom> computeFreeRooms(List<Lecture> lectures, String day) {
@@ -379,6 +457,7 @@ public class DatabaseHandler {
         }
         return cellBackgroundColor;
     }
+
 
 }
 

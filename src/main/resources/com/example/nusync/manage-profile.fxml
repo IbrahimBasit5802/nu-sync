@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox alignment="CENTER" spacing="20.0" stylesheets="@manage-profile.css" styleClass="profile-container" xmlns:fx="http://javafx.com/fxml">
+    <padding>
+        <Insets top="20.0" right="20.0" bottom="20.0" left="20.0" />
+    </padding>
+    <Label text="Manage Profile" styleClass="header-label"/>
+    <TextField fx:id="fullNameField" promptText="Full Name"/>
+    <TextField fx:id="emailField" promptText="Email"/>
+    <PasswordField fx:id="passwordField" promptText="Password"/>
+    <HBox spacing="10">
+        <Label text="Section:" />
+        <ComboBox fx:id="sectionComboBox"/>
+
+
+        <Label text="Batch:" />
+        <ComboBox fx:id="batchComboBox"/>
+
+        <Label text="Department:" />
+        <ComboBox fx:id="departmentComboBox"/>
+    </HBox>
+
+    <Button text="Save Changes" onAction="#handleSaveChanges"/>
+</VBox>

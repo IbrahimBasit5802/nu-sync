@@ -6,9 +6,15 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox alignment="CENTER" spacing="10" xmlns:fx="http://javafx.com/fxml"
+<?import javafx.geometry.Insets?>
+<VBox alignment="CENTER" stylesheets="@freeroom.css" spacing="10" xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.example.nusync.controllers.FreeRoomsController">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+    </padding>
+    <Button text="Currently Free Room" onAction="#handleShowCurrentFreeRooms"/>
+
     <ProgressIndicator fx:id="progressIndicator" />
-    <ListView fx:id="freeRoomsListView" />
+    <ListView fx:id="freeRoomsListView" styleClass="custom-list-view"/>
 </VBox>
 

@@ -24,6 +24,8 @@ module com.example.nusync {
     exports com.example.nusync;
     exports com.example.nusync.controllers;
     opens com.example.nusync.controllers to javafx.fxml;
+    exports com.example.nusync.data;
+
 
 
 }
