@@ -1,13 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="nusync.db" uuid="5504901f-ce8f-4486-b391-e1dec9bb72f1">
-      <driver-ref>sqlite.xerial</driver-ref>
-      <synchronize>true</synchronize>
-      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:nusync.db</jdbc-url>
-      <working-dir>$ProjectFileDir$</working-dir>
-    </data-source>
     <data-source source="LOCAL" name="nusync@localhost" uuid="c53155e4-84a3-4417-ad7c-30efaab22e86">
       <driver-ref>mysql.8</driver-ref>
       <synchronize>true</synchronize>

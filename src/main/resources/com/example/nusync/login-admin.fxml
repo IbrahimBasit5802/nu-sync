@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox fx:id="signInBox" stylesheets="@login.css" spacing="20" alignment="CENTER" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.nusync.controllers.AdminLoginController">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="Admin Login" styleClass="header-label"/>
+
+    <Label text="Email:" />
+    <TextField fx:id="emailField" />
+
+    <Label text="Password:" />
+    <PasswordField fx:id="passwordField" />
+
+    <!-- Login button -->
+    <Button fx:id="loginButton" text="Login" onAction="#handleLogin" id="loginButton" />
+
+    <!-- Error label -->
+    <Label fx:id="errorLabel" />
+</VBox>

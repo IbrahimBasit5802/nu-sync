@@ -9,10 +9,19 @@ public class TeacherAllocation {
 
     private String department;
 
-    public TeacherAllocation(String courseName, String section, String instructor) {
+    public TeacherAllocation(String courseName, String section, String instructor, String department, int semester) {
         this.course = courseName;
         this.section = section;
         this.teacherName = instructor;
+        this.department = department;
+        this.semester = semester;
+    }
+    public void print() {
+        System.out.println("Teacher Name: " + teacherName);
+        System.out.println("Course: " + course);
+        System.out.println("Section: " + section);
+        System.out.println("Department: " + department);
+        System.out.println("Semester: " + semester);
     }
 
     // Getters and setters

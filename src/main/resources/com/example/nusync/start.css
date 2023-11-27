@@ -1,0 +1,19 @@
+.root {
+    -fx-font-family: 'Arial';
+    -fx-base: #2f4f4f;
+    -fx-background-color: #f2f2f2;
+}
+
+.header-label {
+    -fx-font-size: 24px;
+    -fx-text-fill: #333;
+    -fx-padding: 20px;
+}
+
+.button {
+    -fx-font-size: 14px;
+    -fx-text-fill: white;
+    -fx-background-color: #666;
+    -fx-pref-width: 200px;
+    -fx-pref-height: 40px;
+}

@@ -34,6 +34,7 @@ public class DatabaseHandler {
             DatabaseUtil.initializeFreeRoomsTable();
             DatabaseUtil.initializeTeacherAllocationTable();
             DatabaseUtil.initializeStudentsTable();
+            DatabaseUtil.initializeFeedbackTable();
 
             SheetsAPIFetcher fetcher = new SheetsAPIFetcher();
             String[] weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
@@ -94,6 +95,7 @@ public class DatabaseHandler {
 
     public static List<TeacherAllocation> processTA(List<List<Object>> values) {
         List<TeacherAllocation> teacherAllocations = new ArrayList<>();
+        String currentCourseName = "";
 
         for (int i = 4; i < values.size(); i++) {
             List<Object> row = values.get(i);
@@ -106,15 +108,16 @@ public class DatabaseHandler {
                 String section = "";
 
                 if (row.get(2) != null && !row.get(2).toString().trim().isEmpty()) {
-                    courseName = row.get(2).toString().trim();
+                    currentCourseName = row.get(2).toString().trim();
                 }
 
-                if (row.get(4) != null && !row.get(4).toString().trim().isEmpty()) {
+                courseName = currentCourseName;
+                System.out.println(courseName);
+
+
                     sectionCode = row.get(4) != null ? row.get(4).toString().trim() : "";
                     String[] parts = sectionCode.split("-");
-                    if (parts[0].startsWith("M")) { // Master's section, skip it
-                        continue;
-                    }
+
                     if (parts[0].startsWith("B")) {
                         department = parts[0].substring(1); // Skip 'B' and take the rest as department
                     } else {
@@ -136,16 +139,14 @@ public class DatabaseHandler {
                             section = section.replaceAll("(\\D)(\\D)", "$1/$2"); // Add slash between characters
                         }
                     }
-                }
 
-                if (row.get(5) != null && !row.get(5).toString().trim().isEmpty()) {
+
                     instructor = row.get(5).toString().trim();
-                }
 
-                if (!courseName.isEmpty() && !section.isEmpty() && !instructor.isEmpty()) {
-                    TeacherAllocation allocation = new TeacherAllocation(courseName, section, instructor);
-                    allocation.setDepartment(department);
-                    allocation.setSemester(semester);
+
+                if (!section.isEmpty() && !instructor.isEmpty()) {
+                    TeacherAllocation allocation = new TeacherAllocation(courseName, section, instructor, department, semester);
+
                     teacherAllocations.add(allocation);
                 }
             }

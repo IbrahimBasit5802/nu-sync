@@ -1,11 +1,13 @@
-<!--<?xml version="1.0" encoding="UTF-8"?>-->
-<!--<?import javafx.scene.control.*?>-->
-<!--<?import javafx.scene.layout.*?>-->
-<!--<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.nusync.controllers.TeacherAllocationController">-->
-<!--    <HBox spacing="10">-->
-<!--        <TextField fx:id="instructorField" promptText="Instructor Name"/>-->
-<!--        <ComboBox fx:id="dayComboBox" promptText="Day"/>-->
-<!--        <Button text="Search" onAction="#handleSearchAction"/>-->
-<!--    </HBox>-->
-<!--    <ListView fx:id="lecturesListView"/>-->
-<!--</VBox>-->
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.ListView?>
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.nusync.controllers.TeacherAllocationController">
+    <TextField fx:id="searchField" promptText="Enter course or instructor name"/>
+    <Button text="Search" onAction="#handleSearch"/>
+    <ListView fx:id="allocationListView" />
+</VBox>
+

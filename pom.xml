@@ -142,6 +142,12 @@
             <artifactId>jfoenix</artifactId>
             <version>9.0.1</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.kohsuke/github-api -->
+        <dependency>
+            <groupId>org.kohsuke</groupId>
+            <artifactId>github-api</artifactId>
+            <version>1.318</version>
+        </dependency>
 
         <dependency>
             <groupId>com.google.api-client</groupId>

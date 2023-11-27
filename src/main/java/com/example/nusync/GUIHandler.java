@@ -1,6 +1,7 @@
 package com.example.nusync;
 
 import com.example.nusync.controllers.*;
+import com.example.nusync.data.Admin;
 import com.example.nusync.data.Student;
 import javafx.animation.PauseTransition;
 import javafx.fxml.FXMLLoader;
@@ -28,7 +29,7 @@ public class GUIHandler {
         rootLayout = new BorderPane();
 
         // Initially load the login view.
-        switchToLogin();
+        switchToStartView();
         Scene scene = new Scene(rootLayout);
 
         // Return the scene with the root layout.
@@ -89,23 +90,30 @@ public class GUIHandler {
         Button viewTimetableBtn = new Button("View Timetable");
         Button viewFreeRoomsBtn = new Button("View Free Rooms");
         Button manageProfileBtn = new Button("Manage Profile");
+        Button viewTeacherAllocationBtn = new Button("View Teacher Allocation");
+        Button submitFeedbackBtn = new Button("Submit Feedback");
 
         Button logoutButton = new Button("Logout");
        // Button viewTeacherAllocationBtn = new Button("Teacher Allocation");
 
         viewTimetableBtn.setMaxWidth(Double.MAX_VALUE);
         viewFreeRoomsBtn.setMaxWidth(Double.MAX_VALUE);
+        manageProfileBtn.setMaxWidth(Double.MAX_VALUE);
+        viewTeacherAllocationBtn.setMaxWidth(Double.MAX_VALUE);
+        submitFeedbackBtn.setMaxWidth(Double.MAX_VALUE);
         logoutButton.setMaxWidth(Double.MAX_VALUE);
 
 
         viewTimetableBtn.setOnAction(event -> switchToTimetable());
         viewFreeRoomsBtn.setOnAction(event -> switchToFreeRooms());
         manageProfileBtn.setOnAction(event -> switchToManageProfile());
+        viewTeacherAllocationBtn.setOnAction(event -> switchToTeacherAllocationView());
+        submitFeedbackBtn.setOnAction(event -> switchTosSubmitFeedback());
 
-        logoutButton.setOnAction(event -> switchToLogin());
+        logoutButton.setOnAction(event -> switchToStartView());
 //        viewTeacherAllocationBtn.setOnAction(event -> switchToTeacherAllocation());
 
-        toolBar.getItems().addAll(viewTimetableBtn, viewFreeRoomsBtn, manageProfileBtn, logoutButton);
+        toolBar.getItems().addAll(viewTimetableBtn, viewFreeRoomsBtn, manageProfileBtn, viewTeacherAllocationBtn, submitFeedbackBtn ,logoutButton);
 //        toolBar.getItems().add(viewTeacherAllocationBtn);
 
         // Style the toolbar (optional but recommended)
@@ -114,7 +122,6 @@ public class GUIHandler {
 
         rootLayout.setTop(toolBar);
     }
-
 
     private void switchToTimetable() {
         try {
@@ -129,6 +136,68 @@ public class GUIHandler {
             e.printStackTrace();
         }
     }
+
+    private void switchTosSubmitFeedback() {
+        try {
+            FXMLLoader forgotLoader = new FXMLLoader(getClass().getResource("submit-feedback.fxml"));
+            SubmitFeedbackController forgotController = new SubmitFeedbackController(current_student);
+            forgotLoader.setController(forgotController);
+            Node forgotView = forgotLoader.load();
+
+            rootLayout.setCenter(forgotView);
+            primaryStage.sizeToScene(); // Resize the stage to fit the scene's new size
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+    public void switchToAdminLogin() {
+
+        try {
+            FXMLLoader forgotLoader = new FXMLLoader(getClass().getResource("login-admin.fxml"));
+            Node forgotView = forgotLoader.load();
+            AdminLoginController forgotController = forgotLoader.getController();
+            forgotController.setGuiHandler(this);
+            rootLayout.setCenter(forgotView);
+            primaryStage.sizeToScene(); // Resize the stage to fit the scene's new size
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // Logic to switch to the admin login view
+    }
+
+    public void switchToStartView() {
+        hideToolBar();
+        try {
+            FXMLLoader forgotLoader = new FXMLLoader(getClass().getResource("start-view.fxml"));
+            Node forgotView = forgotLoader.load();
+            StartViewController forgotController = forgotLoader.getController();
+            forgotController.setGuiHandler(this);
+            rootLayout.setCenter(forgotView);
+            primaryStage.sizeToScene(); // Resize the stage to fit the scene's new size
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void switchToAdminMainApp(Admin admin) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("admin-main-view.fxml"));
+            Node adminMainView = loader.load();
+            AdminMainViewController adminMainController = loader.getController();
+            adminMainController.setGuiHandler(this);
+            rootLayout.setCenter(adminMainView);
+            primaryStage.sizeToScene(); // Resize the stage to fit the scene's new size
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+
     public void switchToManageProfile() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("manage-profile.fxml"));
@@ -179,6 +248,19 @@ public class GUIHandler {
             pause.setOnFinished(e -> freeRoomsController.loadData());
             pause.play();
 
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private void switchToTeacherAllocationView() {
+        // The logic for switching to the Free Rooms view.
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("TeacherAllocationView.fxml"));
+            Node adminMainView = loader.load();
+            TeacherAllocationController adminMainController = loader.getController();
+            adminMainController.setGuiHandler(this);
+            rootLayout.setCenter(adminMainView);
+            primaryStage.sizeToScene(); // Resize the stage to fit the scene's new size
         } catch (IOException e) {
             e.printStackTrace();
         }

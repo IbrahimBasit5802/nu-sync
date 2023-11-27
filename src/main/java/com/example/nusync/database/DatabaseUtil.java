@@ -3,10 +3,9 @@ package com.example.nusync.database;
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import com.example.nusync.AuthenticationException;
 import com.example.nusync.UserNotFoundException;
-import com.example.nusync.data.FreeRoom;
-import com.example.nusync.data.Lecture;
-import com.example.nusync.data.Student;
-import com.example.nusync.data.TeacherAllocation;
+import com.example.nusync.data.*;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 import java.sql.*;
 import java.time.Duration;
@@ -55,6 +54,85 @@ public class DatabaseUtil {
         }
         return false;
     }
+    public static void initializeFeedbackTable() {
+        String createTableSQL = "CREATE TABLE IF NOT EXISTS feedbacks ("
+                + "id INT PRIMARY KEY AUTO_INCREMENT,"
+                + "student_name VARCHAR(255) NOT NULL,"
+                + "email VARCHAR(255) NOT NULL,"
+                + "feedback TEXT NOT NULL,"
+                + "last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+                + ");";
+
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(createTableSQL);
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public boolean insertFeedback(Feedback feedback) {
+        String insertSQL = "INSERT INTO feedbacks (student_name, email, feedback) VALUES (?, ?, ?)";
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(insertSQL)) {
+            pstmt.setString(1, feedback.getName());
+            pstmt.setString(2, feedback.getEmail());
+            pstmt.setString(3, feedback.getFeedback());
+
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            System.out.println("Error inserting feedback: " + e.getMessage());
+            return false;
+        }
+    }
+    public List<TeacherAllocation> getAllTeacherAllocations() {
+        List<TeacherAllocation> allocations = new ArrayList<>();
+        String sql = "SELECT * FROM teacherAllocations";
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                allocations.add(new TeacherAllocation(
+                        rs.getString("course"),
+                        rs.getString("section"),
+                        rs.getString("teacherName"),
+                        rs.getString("department"),
+                        rs.getInt("semester")
+                ));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error fetching teacher allocations: " + e.getMessage());
+        }
+        return allocations;
+    }
+
+    public List<TeacherAllocation> searchTeacherAllocations(String searchText) {
+        List<TeacherAllocation> allocations = new ArrayList<>();
+        String sql = "SELECT * FROM teacherAllocations WHERE teacherName LIKE ? OR course LIKE ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, "%" + searchText + "%");
+            pstmt.setString(2, "%" + searchText + "%");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    allocations.add(new TeacherAllocation(
+                            rs.getString("course"),
+                            rs.getString("section"),
+                            rs.getString("teacherName"),
+                            rs.getString("department"),
+                            rs.getInt("semester")
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error searching teacher allocations: " + e.getMessage());
+        }
+        return allocations;
+    }
+
+
 
     public boolean createStudent(String fullName, String email, String password, String section, String batch, String department) {
         // Check if email already exists
@@ -88,6 +166,30 @@ public class DatabaseUtil {
             return false;
         }
     }
+
+    public Admin authenticateAdmin(String email, String password) throws AuthenticationException, UserNotFoundException {
+        String query = "SELECT * FROM admin WHERE email = ? AND password = ?";
+        try (Connection conn = connect();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, email);
+            stmt.setString(2, password); // Directly using the password without hashing
+            ResultSet rs = stmt.executeQuery();
+
+            if (!rs.next()) {
+                throw new UserNotFoundException("Admin not found for email: " + email);
+            }
+
+            // If the query is successful, it means the email and password matched
+            return new Admin(
+                    rs.getString("email"),
+                    rs.getString("password") // Password is directly used without hashing
+            );
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new AuthenticationException("An error occurred while attempting to authenticate.");
+        }
+    }
+
 
     public Student authenticateStudent(String email, String password) throws AuthenticationException, UserNotFoundException {
         String query = "SELECT * FROM students WHERE email = ?";
