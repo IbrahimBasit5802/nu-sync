@@ -1,6 +1,41 @@
+.vbox {
+    -fx-padding: 20px;
+    -fx-alignment: top-center;
+}
+
 .button {
-    -fx-font-size: 16px;
-    -fx-background-color: #4CAF50;
+    -fx-font-size: 18px;
+    -fx-background-color: linear-gradient(to bottom, #76b852, #8DC26F);
     -fx-text-fill: white;
-    -fx-padding: 10px 20px;
+    -fx-border-color: #5AAB5B;
+    -fx-border-width: 2px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.8), 10, 0, 0, 0);
+    -fx-padding: 15px 30px;
+    -fx-background-radius: 5px;
+    -fx-border-radius: 5px;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: linear-gradient(to bottom, #8DC26F, #76b852);
+}
+
+.list-view {
+    -fx-padding: 10px;
+    -fx-background-insets: 0, 1, 2;
+    -fx-background-radius: 5px;
+    -fx-border-insets: 0;
+    -fx-border-radius: 5px;
+    -fx-border-color: #5AAB5B;
+}
+
+.list-cell {
+    -fx-padding: 10px;
+    -fx-border-color: transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.list-cell:filled:selected, .list-cell:filled:selected:hover {
+    -fx-background-color: #a6d96a;
+    -fx-text-fill: white;
 }

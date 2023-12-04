@@ -11,6 +11,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressIndicator;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -49,10 +50,19 @@ public class TimeTableController {
 
     }
 
+    private List<String> getSectionOptions() {
+        List<String> sectionList = new ArrayList<>();
+        for (char section = 'A'; section <= 'Z'; section++) {
+            sectionList.add(String.valueOf(section));
+        }
+        // This should return the list of sections from the database or a static list
+        return sectionList; // Example section values
+    }
+
     @FXML
     public void initialize() {
         // Sample data for the selectors. Replace with real data as needed.
-        sectionSelector.getItems().addAll("A", "B", "C", "D", "E", "F", "G", "H", "J", "K");
+        sectionSelector.getItems().setAll(getSectionOptions());
         daySelector.getItems().addAll("Monday", "Tuesday", "Wednesday", "Thursday", "Friday");
         batchSelector.getItems().addAll("23", "22", "21", "20");
         departmentSelector.getItems().addAll("CS", "AI", "DS", "CY", "SE");

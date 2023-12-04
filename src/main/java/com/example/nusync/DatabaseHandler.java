@@ -9,9 +9,7 @@ import com.google.api.services.sheets.v4.model.GridData;
 import com.google.api.services.sheets.v4.model.RowData;
 import com.google.api.services.sheets.v4.model.Sheet;
 
-import java.sql.*;
 import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -22,12 +20,9 @@ import java.util.regex.Pattern;
 
 public class DatabaseHandler {
 
-
-
     public CompletableFuture<Void> initializeDatabaseAsync() {
         return CompletableFuture.runAsync(() -> {
             DatabaseUtil dbUtil = new DatabaseUtil();
-
 
             // Initialize tables if they don't exist.
             DatabaseUtil.initialize();
@@ -40,9 +35,9 @@ public class DatabaseHandler {
             String[] weekdays = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"};
 
             // Check if lectures table is empty and fetch data if it is
-            if (dbUtil.isTableEmpty("lectures") || dbUtil.isDataStale("lectures") || dbUtil.isTableEmpty("freeRooms") || dbUtil.isDataStale("freeRooms")) {
+            if (dbUtil.isTableEmpty("lectures") || dbUtil.isDataStale("lectures")) {
                 dbUtil.clearTable("lectures");
-                dbUtil.clearTable("freeRooms");
+                //dbUtil.clearTable("freeRooms");
                 for (String day : weekdays) {
                     System.out.println("Fetching data for: " + day);
                     try {
@@ -53,12 +48,41 @@ public class DatabaseHandler {
                         List<Lecture> lectures = processData(values, gridDataList, day);
                         lectures.sort(Comparator.comparing(Lecture::getTimeslot));
 
-                        List<FreeRoom> freeRooms = computeFreeRooms(lectures, day);
+                        //List<FreeRoom> freeRooms = computeFreeRooms(lectures, day);
+                        //List<FreeRoom> freeRooms = processFreeRooms(values, gridDataList, day);
+
 
 
 
                         // Save the data to the database
                         dbUtil.saveLectures(lectures);
+                        //dbUtil.saveFreeRooms(freeRooms);
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    System.out.println("-----------------------");
+                }
+
+                System.out.println("Fetched all Lectures");
+            }
+
+            if (dbUtil.isTableEmpty("freeRooms") || dbUtil.isDataStale("freeRooms")) {
+                dbUtil.clearTable("freeRooms");
+                System.out.println("Fetching Free Rooms...");
+                for (String day : weekdays) {
+                    System.out.println("Fetching free rooms for: " + day);
+                    try {
+                        Sheet sheetData = fetcher.fetchDataAndFormat(day, Config.COMPUTING_TIMETABLE_SPREADSHEET_ID);
+                        List<GridData> gridDataList = sheetData.getData();
+                        List<List<Object>> values = fetcher.fetchSheetData(day, Config.COMPUTING_TIMETABLE_SPREADSHEET_ID);
+
+
+                        //List<FreeRoom> freeRooms = computeFreeRooms(lectures, day);
+                        List<FreeRoom> freeRooms = processFreeRooms(values, gridDataList, day);
+
+
+
                         dbUtil.saveFreeRooms(freeRooms);
 
                     } catch (Exception e) {
@@ -66,6 +90,8 @@ public class DatabaseHandler {
                     }
                     System.out.println("-----------------------");
                 }
+                System.out.println("Fetched all Free Rooms");
+
             }
 
             // Check if teacherAllocations table is empty and fetch data if it is
@@ -87,10 +113,78 @@ public class DatabaseHandler {
                         e.printStackTrace();
                     }
                 }
+                System.out.println("Fetched all Teacher Course Allocations");
             }
         });
     }
 
+    // This function processes free rooms from the timetable data
+    public List<FreeRoom> processFreeRooms(List<List<Object>> values, List<GridData> gridDataList, String day) {
+        List<FreeRoom> freeRooms = new ArrayList<>();
+        int timeslotRowIndex = 4; // Adjust if needed based on the actual spreadsheet layout
+
+        for (int i = timeslotRowIndex + 1; i < values.size(); i++) {
+            List<Object> rowValues = values.get(i);
+            RowData rowData = gridDataList.get(0).getRowData().get(i);
+            String room = rowValues.get(0).toString().trim();
+
+            // Skip lab rows
+            if ("Lab".equals(room)) {
+                continue;
+            }
+
+            for (int j = 1; j < rowValues.size(); j++) {
+                String cellValue = rowValues.get(j).toString().trim();
+                String cellBackgroundColor = getCellBackgroundColor(rowData, j);
+
+                // Skip non-empty cells or cells with non-white background
+                if (isCellEmpty(cellValue) || !isBackgroundColorWhite(cellBackgroundColor)) {
+                    continue;
+                }
+
+                LocalTime start = getTimeFromColumnIndex(j);
+                LocalTime end = getNextOccupiedTime(values, gridDataList, i, j);
+
+                // Add free room slot if it is longer than 10 minutes
+                if (Duration.between(start, end).toMinutes() > 10) {
+                    freeRooms.add(new FreeRoom(room, start.toString(), end.toString(), day));
+                }
+            }
+        }
+
+        return freeRooms;
+    }
+
+    // Determines if the background color of a cell is white
+    boolean isBackgroundColorWhite(String colorHex) {
+        return "#FFFFFF".equals(colorHex) || colorHex == null; // White or default background color
+    }
+
+    // Maps a column index to the corresponding time of the day
+    LocalTime getTimeFromColumnIndex(int columnIndex) {
+        // The start time for the first column (index 0) is 8:00 AM
+        // Each column represents a 30-minute interval
+        return LocalTime.of(8, 0).plusMinutes(30 * columnIndex);
+    }
+
+    // Finds the next occupied time slot after the given index
+    LocalTime getNextOccupiedTime(List<List<Object>> values, List<GridData> gridDataList, int rowIndex, int columnIndex) {
+        LocalTime nextOccupiedTime = LocalTime.of(20, 0); // Assuming last slot ends at 8 PM
+
+        // Iterate over subsequent cells in the same row to find the next non-empty cell
+        for (int i = columnIndex + 1; i < values.get(rowIndex).size(); i++) {
+            if (isCellEmpty(values.get(rowIndex).get(i))) {
+                nextOccupiedTime = getTimeFromColumnIndex(i);
+                break;
+            }
+        }
+        return nextOccupiedTime;
+    }
+
+    // Helper method to check if a cell is empty
+    boolean isCellEmpty(Object cellValue) {
+        return cellValue != null && !cellValue.toString().trim().isEmpty();
+    }
 
 
     public static List<TeacherAllocation> processTA(List<List<Object>> values) {
@@ -206,7 +300,7 @@ public class DatabaseHandler {
         return lecture;
     }
 
-        public static List<Lecture> processData(List<List<Object>> values, List<GridData> gridDataList, String day) {
+    public static List<Lecture> processData(List<List<Object>> values, List<GridData> gridDataList, String day) {
         final Pattern TIMESLOT_PATTERN = Pattern.compile("\\b\\d{2}:\\d{2}-\\d{2}:\\d{2}\\b");
 
         List<Lecture> lectures = new ArrayList<>();
@@ -355,7 +449,6 @@ public class DatabaseHandler {
         return colors;
     }
 
-
     public List<FreeRoom> computeFreeRooms(List<Lecture> lectures, String day) {
         final LocalTime START_TIME = LocalTime.of(8, 0); // Rooms are available from 8 AM
         final LocalTime END_TIME = LocalTime.of(20, 0); // Rooms are available until 8 PM
@@ -423,12 +516,9 @@ public class DatabaseHandler {
         }
     }
 
-
     private String timeToString(LocalTime time) {
         return time.format(DateTimeFormatter.ofPattern("HH:mm"));
     }
-
-
 
 
     private static String getCellBackgroundColor(RowData rowData, int j) {

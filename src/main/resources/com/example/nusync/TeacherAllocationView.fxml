@@ -1,13 +1,13 @@
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.Button?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.ListView?>
-<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.example.nusync.controllers.TeacherAllocationController">
-    <TextField fx:id="searchField" promptText="Enter course or instructor name"/>
-    <Button text="Search" onAction="#handleSearch"/>
-    <ListView fx:id="allocationListView" />
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="com.example.nusync.controllers.TeacherAllocationController" stylesheets="@teacher-allocation.css">
+    <HBox spacing="10">
+        <TextField HBox.hgrow="ALWAYS" fx:id="searchField" styleClass="search-field" promptText="Enter course or instructor name"/>
+        <Button text="Search" styleClass="search-button" onAction="#handleSearch"/>
+    </HBox>
+    <ListView fx:id="allocationListView" VBox.vgrow="ALWAYS"/>
 </VBox>
-

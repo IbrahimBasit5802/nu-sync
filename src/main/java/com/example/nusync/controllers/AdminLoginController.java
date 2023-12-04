@@ -1,8 +1,8 @@
 package com.example.nusync.controllers;
 
-import com.example.nusync.AuthenticationException;
+import com.example.nusync.exceptions.AuthenticationException;
 import com.example.nusync.GUIHandler;
-import com.example.nusync.UserNotFoundException;
+import com.example.nusync.exceptions.UserNotFoundException;
 import com.example.nusync.data.Admin;
 import com.example.nusync.database.DatabaseUtil;
 import javafx.fxml.FXML;

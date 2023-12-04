@@ -3,7 +3,7 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.VBox?>
-<VBox xmlns:fx="http://javafx.com/fxml/1"  spacing="10" alignment="TOP_CENTER">
+<VBox xmlns:fx="http://javafx.com/fxml/1" stylesheets="@feedback.css"  spacing="10" alignment="TOP_CENTER">
     <Label text="Submit Feedback"/>
     <TextArea fx:id="feedbackTextArea" promptText="Enter your feedback here"/>
     <Button text="Submit" onAction="#handleSubmitButton"/>

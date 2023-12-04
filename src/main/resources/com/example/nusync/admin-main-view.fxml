@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.ListView?>
 <VBox alignment="CENTER" spacing="20" stylesheets="@admin-main.css" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.nusync.controllers.AdminMainViewController">
     <Button text="View User Feedbacks" onAction="#handleViewFeedbacks" fx:id="viewFeedbacksButton"/>
+    <ListView fx:id="feedbackListView" />
+
     <Button text="Logout" onAction="#handleLogout" fx:id="logoutButton"/>
 </VBox>

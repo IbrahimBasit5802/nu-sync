@@ -1,0 +1,72 @@
+.root {
+    -fx-background-color: #eceff1; /* Light blue grey background */
+    -fx-font-family: 'Arial';
+}
+
+.vbox {
+    -fx-spacing: 10; /* Space between children */
+    -fx-alignment: center; /* Align children to the center */
+}
+
+.text-field {
+    -fx-pref-width: 200px; /* Preferred width */
+    -fx-pref-height: 30px; /* Preferred height */
+    -fx-font-size: 14px;
+    -fx-border-color: #90a4ae; /* Blue grey border */
+    -fx-border-radius: 5px;
+    -fx-padding: 4px 8px;
+}
+
+.button {
+    -fx-background-color: #42a5f5; /* Blue background */
+    -fx-text-fill: #ffffff; /* White text */
+    -fx-font-weight: bold; /* Bold font */
+    -fx-padding: 10px 20px; /* Padding around text */
+    -fx-border-radius: 5px; /* Rounded border */
+    -fx-background-radius: 5px; /* Rounded background */
+}
+
+.button:hover {
+    -fx-background-color: #1e88e5; /* Slightly darker blue on hover */
+}
+
+.list-view {
+    -fx-background-radius: 5px; /* Rounded corners for list view */
+    -fx-border-color: #90a4ae; /* Blue grey border */
+    -fx-border-radius: 5px;
+    -fx-border-width: 1px; /* Border width */
+}
+
+.list-cell {
+    -fx-padding: 10px; /* Padding inside list cells */
+}
+
+.list-cell:filled:selected, .list-cell:filled:selected:hover {
+    -fx-background-color: #64b5f6; /* Lighter blue for selection */
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+}
+
+.list-cell:filled:hover {
+    -fx-background-color: #bbdefb; /* Very light blue on hover */
+}
+/* CSS file (teacher-allocation.css) */
+
+.search-box {
+    -fx-padding: 10px;
+}
+
+.search-field {
+    -fx-pref-height: 30px; /* Adjust the height as needed */
+}
+
+.search-button {
+    -fx-pref-height: 30px; /* Make sure this matches the TextField height */
+    -fx-font-size: 12px;
+    /* Other styling */
+}
+
+/* Apply the same padding and spacing for both elements */
+.search-field, .search-button {
+    -fx-padding: 5px;
+}

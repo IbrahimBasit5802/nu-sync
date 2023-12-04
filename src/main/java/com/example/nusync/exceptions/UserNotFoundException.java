@@ -1,4 +1,4 @@
-package com.example.nusync;
+package com.example.nusync.exceptions;
 
 public class UserNotFoundException extends Exception {
     public UserNotFoundException(String message) {

@@ -1,11 +1,9 @@
 package com.example.nusync.database;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
-import com.example.nusync.AuthenticationException;
-import com.example.nusync.UserNotFoundException;
+import com.example.nusync.exceptions.AuthenticationException;
+import com.example.nusync.exceptions.UserNotFoundException;
 import com.example.nusync.data.*;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 
 import java.sql.*;
 import java.time.Duration;
@@ -15,12 +13,10 @@ import java.util.List;
 
 public class DatabaseUtil {
 
-    // Update the JDBC URL to point to your MySQL server.
     private static final String URL = "jdbc:mysql://localhost:3306/nusync?user=root&password=";
     private static final String USER = "root";
     private static final String PASSWORD = "";
 
-    // Ensure the MySQL driver is loaded.
     static {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -107,6 +103,29 @@ public class DatabaseUtil {
         }
         return allocations;
     }
+
+
+    public List<Feedback> getAllFeedbacks() {
+        List<Feedback> fd = new ArrayList<>();
+        String sql = "SELECT * FROM feedbacks";
+        try (Connection conn = connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                fd.add(new Feedback(
+                        rs.getString("student_name"),
+                        rs.getString("email"),
+                        rs.getString("feedback")
+
+                ));
+            }
+        } catch (SQLException e) {
+            System.out.println("Error fetching feedbacks: " + e.getMessage());
+        }
+        return fd;
+
+    }
+
 
     public List<TeacherAllocation> searchTeacherAllocations(String searchText) {
         List<TeacherAllocation> allocations = new ArrayList<>();
